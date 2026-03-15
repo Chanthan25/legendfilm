@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, ChevronRight } from 'lucide-react';
 import { dramas, reviews } from '../data/mockData';
@@ -7,9 +8,27 @@ import HeroSlider from '../components/HeroSlider';
 import { motion } from 'motion/react';
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate data fetching
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
   const trendingDramas = dramas.slice(0, 4);
   const latestReviews = reviews.slice(0, 2);
   const featuredDrama = dramas[0];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950">

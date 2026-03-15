@@ -97,22 +97,146 @@ export async function addReview(userId: string, dramaId: string, rating: number,
 }
 
 export async function getFollowStats(userId: string) {
-  const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId);
-  const { count: following } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId);
+  const { count: followers } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', userId);
+  const { count: following } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', userId);
   return { followers: followers || 0, following: following || 0 };
 }
 
 export async function checkIsFollowing(followerId: string, followingId: string) {
-  const { data, error } = await supabase.from('follows').select('*').match({ follower_id: followerId, following_id: followingId }).single();
+  const { data, error } = await supabase.from('followers').select('*').match({ follower_id: followerId, following_id: followingId }).single();
   return !!data;
+}
+
+export async function testFollowConstraint() {
+  const { error } = await supabase.from('followers').insert({ follower_id: '11111111-1111-1111-1111-111111111111', following_id: '22222222-2222-2222-2222-222222222222' });
+  console.log('Test follow constraint error:', error);
+  return error;
 }
 
 export async function toggleFollow(followerId: string, followingId: string, isFollowing: boolean) {
   if (isFollowing) {
-    const { error } = await supabase.from('follows').delete().match({ follower_id: followerId, following_id: followingId });
+    const { error } = await supabase.from('followers').delete().match({ follower_id: followerId, following_id: followingId });
     if (error) console.error('Error unfollowing:', error);
+    return error;
   } else {
-    const { error } = await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
+    const { error } = await supabase.from('followers').insert({ follower_id: followerId, following_id: followingId });
     if (error) console.error('Error following:', error);
+    return error;
   }
+}
+
+export async function getDramaStats(dramaId: string) {
+  const { count: likes } = await supabase.from('drama_likes').select('*', { count: 'exact', head: true }).eq('drama_id', dramaId).eq('is_like', true);
+  const { count: dislikes } = await supabase.from('drama_likes').select('*', { count: 'exact', head: true }).eq('drama_id', dramaId).eq('is_like', false);
+  const { count: shares } = await supabase.from('drama_shares').select('*', { count: 'exact', head: true }).eq('drama_id', dramaId);
+  return { likes: likes || 0, dislikes: dislikes || 0, shares: shares || 0 };
+}
+
+export async function getUserDramaReaction(userId: string, dramaId: string) {
+  const { data } = await supabase.from('drama_likes').select('is_like').match({ user_id: userId, drama_id: dramaId }).single();
+  return data?.is_like ?? null; // true for like, false for dislike, null for none
+}
+
+export async function toggleDramaReaction(userId: string, dramaId: string, isLike: boolean) {
+  const currentReaction = await getUserDramaReaction(userId, dramaId);
+  
+  if (currentReaction === isLike) {
+    // Remove reaction if clicking the same button
+    const { error } = await supabase.from('drama_likes').delete().match({ user_id: userId, drama_id: dramaId });
+    if (error) console.error('Error removing reaction:', error);
+  } else {
+    // Insert or update reaction
+    const { error } = await supabase.from('drama_likes').upsert({ user_id: userId, drama_id: dramaId, is_like: isLike });
+    if (error) console.error('Error adding reaction:', error);
+  }
+}
+
+export async function addDramaShare(userId: string | undefined, dramaId: string) {
+  const { error } = await supabase.from('drama_shares').insert({ user_id: userId || null, drama_id: dramaId });
+  if (error) console.error('Error adding share:', error);
+}
+
+export async function getNotifications(userId: string) {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function markNotificationRead(notificationId: string) {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', notificationId);
+  if (error) console.error('Error marking notification read:', error);
+  return error;
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+  if (error) console.error('Error marking all notifications read:', error);
+  return error;
+}
+
+export async function getNotificationSettings(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('notification_settings')
+    .eq('id', userId)
+    .single();
+  if (error) {
+    console.error('Error fetching notification settings:', error);
+    return null;
+  }
+  return data?.notification_settings || { new_episode: true, channel_updates: true, marketing: false };
+}
+
+export async function updateNotificationSettings(userId: string, settings: any) {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, notification_settings: settings });
+  if (error) console.error('Error updating notification settings:', error);
+  return error;
+}
+
+export async function getStorageUsage(userId: string) {
+  try {
+    const buckets = ['avatars', 'covers'];
+    let totalSize = 0;
+    
+    for (const bucket of buckets) {
+      const { data, error } = await supabase.storage.from(bucket).list();
+      if (error) continue;
+      
+      if (data) {
+        // Filter files that belong to this user (starting with userId)
+        data.forEach(file => {
+          if (file.name.startsWith(userId)) {
+            totalSize += file.metadata?.size || 0;
+          }
+        });
+      }
+    }
+    
+    return totalSize;
+  } catch (error) {
+    console.error('Error calculating storage usage:', error);
+    return 0;
+  }
+}
+
+export async function getSessionInfo() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) return null;
+  return session;
 }

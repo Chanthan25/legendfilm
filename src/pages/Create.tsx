@@ -56,7 +56,11 @@ export default function Create() {
       summary: formData.summary,
       trailerUrl: trailerPreview || '',
       rating: Number(formData.rating),
-      country: formData.country
+      country: formData.country,
+      channel_id: user.id,
+      channel_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Unknown',
+      channel_avatar: user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+      channel_subscribers: '0'
     };
 
     // Add to mock data (in a real app, this would be an API call)

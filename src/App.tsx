@@ -16,6 +16,7 @@ import Disclaimer from './pages/Disclaimer';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import Create from './pages/Create';
+import Notifications from './pages/Notifications';
 import { AuthProvider } from './lib/AuthContext';
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/notifications" element={<Notifications />} />
             </Routes>
           </main>
           <Footer />

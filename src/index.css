@@ -5,3 +5,24 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+body {
+  /* Replace the URL below with the actual link to your uploaded image */
+  background-image: url('https://cambodianess.com/article/cambodias-angkor-wat-ranked-tripadvisors-most-attractive-tourist-destination-in-asia-for-2025-pm');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-color: #09090b; /* Fallback color */
+}
+
+/* Make the main app wrapper semi-transparent so the background image shows through */
+#root > div {
+  background-color: rgba(9, 9, 11, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Make page containers transparent to reveal the background */
+main > div.min-h-screen {
+  background-color: transparent !important;
+}
+

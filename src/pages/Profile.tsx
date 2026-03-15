@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { User, Settings, Heart, MessageSquare, LogOut, Edit3, UserPlus, UserMinus, Camera } from 'lucide-react';
+import { User, Settings, Heart, MessageSquare, LogOut, Edit3, UserPlus, UserMinus, Camera, Palette, Bell, Monitor, HardDrive, Trash2, Shield, Film } from 'lucide-react';
 import { dramas } from '../data/mockData';
 import DramaCard from '../components/DramaCard';
 import ReviewCard from '../components/ReviewCard';
 import { useAuth } from '../lib/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow } from '../lib/api';
+import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow, getNotificationSettings, updateNotificationSettings, getStorageUsage, getSessionInfo } from '../lib/api';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<'watchlist' | 'reviews' | 'settings'>('watchlist');
+  const [activeTab, setActiveTab] = useState<'uploads' | 'watchlist' | 'reviews' | 'settings'>('uploads');
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'notifications' | 'system'>('profile');
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState<any>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [userReviews, setUserReviews] = useState<any[]>([]);
+  const [uploads, setUploads] = useState<any[]>([]);
   const [stats, setStats] = useState({ followers: 0, following: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +27,14 @@ export default function Profile() {
   
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [notificationSettings, setNotificationSettings] = useState({
+    new_episode: true,
+    channel_updates: true,
+    marketing: false
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [storageSize, setStorageSize] = useState<number>(0);
+  const [sessionInfo, setSessionInfo] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,21 +53,30 @@ export default function Profile() {
       setIsLoading(true);
       
       try {
-        const [profileData, watchlistIds, reviewsData, followStats] = await Promise.all([
+        const [profileData, watchlistIds, reviewsData, followStats, notifSettings, usage, session] = await Promise.all([
           getProfile(profileId),
           getWatchlist(profileId),
           getReviews(profileId),
-          getFollowStats(profileId)
+          getFollowStats(profileId),
+          isOwnProfile ? getNotificationSettings(profileId) : Promise.resolve(null),
+          isOwnProfile ? getStorageUsage(profileId) : Promise.resolve(0),
+          isOwnProfile ? getSessionInfo() : Promise.resolve(null)
         ]);
 
         setProfile(profileData || { id: profileId });
         setEditName(profileData?.display_name || '');
         setEditBio(profileData?.bio || '');
+        if (notifSettings) {
+          setNotificationSettings(notifSettings);
+        }
+        setStorageSize(usage);
+        setSessionInfo(session);
         
         const watchlistedDramas = watchlistIds.map((id: string) => dramas.find(d => d.id === id)).filter(Boolean);
         setWatchlist(watchlistedDramas);
         setUserReviews(reviewsData);
         setStats(followStats);
+        setUploads(dramas.filter(d => d.channel_id === profileId));
 
         if (user && !isOwnProfile) {
           const following = await checkIsFollowing(user.id, profileId);
@@ -87,6 +106,25 @@ export default function Profile() {
       alert('Profile updated successfully!');
     }
     setIsSaving(false);
+  };
+
+  const handleSaveNotificationSettings = async () => {
+    if (!user) return;
+    setIsSavingSettings(true);
+    const error = await updateNotificationSettings(user.id, notificationSettings);
+    if (!error) {
+      alert('Notification preferences saved!');
+    } else {
+      console.error('Supabase Error:', error);
+      alert(`Failed to save preferences: ${error.message || 'Unknown error'}`);
+    }
+    setIsSavingSettings(false);
+  };
+
+  const handleClearCache = () => {
+    localStorage.clear();
+    alert('Local cache cleared successfully!');
+    window.location.reload();
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,7 +166,7 @@ export default function Profile() {
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -204,6 +242,10 @@ export default function Profile() {
               
               <div className="flex flex-wrap justify-center md:justify-start gap-6">
                 <div className="text-center md:text-left">
+                  <p className="text-2xl font-bold text-white">{uploads.length}</p>
+                  <p className="text-sm text-zinc-500 uppercase tracking-wider">Uploads</p>
+                </div>
+                <div className="text-center md:text-left">
                   <p className="text-2xl font-bold text-white">{watchlist.length}</p>
                   <p className="text-sm text-zinc-500 uppercase tracking-wider">Watched</p>
                 </div>
@@ -253,6 +295,17 @@ export default function Profile() {
         {/* Tabs */}
         <div className="flex overflow-x-auto gap-2 mb-8 border-b border-zinc-800 pb-px">
           <button 
+            onClick={() => setActiveTab('uploads')}
+            className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'uploads' ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-300'}`}
+          >
+            <div className="flex items-center gap-2">
+              <Film className="w-4 h-4" /> Uploads
+            </div>
+            {activeTab === 'uploads' && (
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
+            )}
+          </button>
+          <button 
             onClick={() => setActiveTab('watchlist')}
             className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'watchlist' ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-300'}`}
           >
@@ -291,6 +344,31 @@ export default function Profile() {
 
         {/* Tab Content */}
         <div className="min-h-[400px]">
+          {activeTab === 'uploads' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+            >
+              {uploads.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-zinc-500">
+                  No dramas uploaded yet.
+                </div>
+              ) : (
+                uploads.map((drama, index) => (
+                  <motion.div
+                    key={drama.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <DramaCard drama={drama} />
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          )}
+
           {activeTab === 'watchlist' && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -361,76 +439,289 @@ export default function Profile() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl p-8"
+              className="flex flex-col md:flex-row gap-8"
             >
-              <h2 className="text-xl font-bold text-white mb-6">Edit Profile</h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-center gap-6 pb-6 border-b border-zinc-800">
-                  <img 
-                    src={avatarUrl} 
-                    alt={displayName} 
-                    className="w-20 h-20 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
-                  />
-                  <div>
-                    <h3 className="text-white font-medium mb-2">Profile Picture</h3>
-                    <div className="flex gap-3">
+              {/* Settings Sidebar */}
+              <div className="w-full md:w-64 flex-shrink-0">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-2">
+                  <button 
+                    onClick={() => setSettingsTab('profile')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors text-left ${settingsTab === 'profile' ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+                  >
+                    <User className="w-5 h-5" /> Account Profile
+                  </button>
+                  <button 
+                    onClick={() => setSettingsTab('appearance')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors text-left ${settingsTab === 'appearance' ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+                  >
+                    <Palette className="w-5 h-5" /> Appearance
+                  </button>
+                  <button 
+                    onClick={() => setSettingsTab('notifications')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors text-left ${settingsTab === 'notifications' ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+                  >
+                    <Bell className="w-5 h-5" /> Notifications
+                  </button>
+                  <button 
+                    onClick={() => setSettingsTab('system')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors text-left ${settingsTab === 'system' ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+                  >
+                    <Monitor className="w-5 h-5" /> System & Data
+                  </button>
+                  
+                  <div className="h-px bg-zinc-800 my-2"></div>
+                  
+                  <button 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors text-left text-red-500 hover:bg-red-500/10"
+                  >
+                    <LogOut className="w-5 h-5" /> Sign Out
+                  </button>
+                </div>
+              </div>
+
+              {/* Settings Content */}
+              <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
+                {settingsTab === 'profile' && (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-bold text-white mb-6">Edit Profile</h2>
+                    <div className="flex items-center gap-6 pb-6 border-b border-zinc-800">
+                      <img 
+                        src={avatarUrl} 
+                        alt={displayName} 
+                        className="w-20 h-20 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
+                      />
+                      <div>
+                        <h3 className="text-white font-medium mb-2">Profile Picture</h3>
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Change Image
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address</label>
+                      <input 
+                        type="email" 
+                        disabled
+                        value={user?.email || ''} 
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-300 focus:outline-none focus:border-amber-500 transition-colors opacity-70 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-zinc-500 mt-2">Email cannot be changed.</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
+                      <input 
+                        type="text" 
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-400 mb-2">Bio</label>
+                      <textarea 
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        rows={4}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors resize-none"
+                      />
+                    </div>
+
+                    <div className="pt-6 flex justify-end">
                       <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded-lg text-sm font-medium transition-colors"
+                        onClick={handleSaveProfile}
+                        disabled={isSaving}
+                        className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-6 py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
                       >
-                        Change Image
+                        {isSaving ? 'Saving...' : 'Save Profile'}
                       </button>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address</label>
-                  <input 
-                    type="email" 
-                    disabled
-                    value={user?.email || ''} 
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-300 focus:outline-none focus:border-amber-500 transition-colors opacity-70 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-zinc-500 mt-2">Email cannot be changed.</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
-                  <input 
-                    type="text" 
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors"
-                  />
-                </div>
+                {settingsTab === 'appearance' && (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-bold text-white mb-6">Appearance Settings</h2>
+                    
+                    <div>
+                      <h3 className="text-white font-medium mb-4">Theme Preference</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <button className="border-2 border-amber-500 bg-zinc-950 rounded-xl p-4 flex flex-col items-center gap-3 transition-colors">
+                          <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center">
+                            <Monitor className="w-6 h-6 text-amber-500" />
+                          </div>
+                          <span className="text-white font-medium">Dark Mode</span>
+                        </button>
+                        <button className="border border-zinc-800 hover:border-zinc-700 bg-zinc-950 rounded-xl p-4 flex flex-col items-center gap-3 transition-colors opacity-50 cursor-not-allowed">
+                          <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
+                            <Palette className="w-6 h-6 text-zinc-900" />
+                          </div>
+                          <span className="text-zinc-400 font-medium">Light Mode</span>
+                        </button>
+                        <button className="border border-zinc-800 hover:border-zinc-700 bg-zinc-950 rounded-xl p-4 flex flex-col items-center gap-3 transition-colors opacity-50 cursor-not-allowed">
+                          <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center">
+                            <Settings className="w-6 h-6 text-zinc-400" />
+                          </div>
+                          <span className="text-zinc-400 font-medium">System</span>
+                        </button>
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-3">Currently, Legend Film only supports Dark Mode for the best viewing experience.</p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-2">Bio</label>
-                  <textarea 
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    rows={4}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors resize-none"
-                  />
-                </div>
+                    <div className="pt-6 border-t border-zinc-800">
+                      <h3 className="text-white font-medium mb-4">Content Language</h3>
+                      <select className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="en">English</option>
+                        <option value="km">Khmer (ខ្មែរ)</option>
+                        <option value="zh">Chinese (中文)</option>
+                        <option value="ko">Korean (한국어)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
 
-                <div className="pt-6 border-t border-zinc-800 flex justify-between items-center">
-                  <button 
-                    onClick={handleSignOut}
-                    className="text-red-500 hover:text-red-400 font-medium flex items-center gap-2 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" /> Sign Out
-                  </button>
-                  <button 
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-6 py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Profile'}
-                  </button>
-                </div>
+                {settingsTab === 'notifications' && (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-bold text-white mb-6">Notification Preferences</h2>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                        <div>
+                          <h4 className="text-white font-medium">New Episode Alerts</h4>
+                          <p className="text-sm text-zinc-400">Get notified when dramas in your watchlist have new episodes.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={notificationSettings.new_episode}
+                            onChange={(e) => setNotificationSettings({...notificationSettings, new_episode: e.target.checked})}
+                          />
+                          <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                        <div>
+                          <h4 className="text-white font-medium">Channel Updates</h4>
+                          <p className="text-sm text-zinc-400">Notifications from channels you subscribe to.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={notificationSettings.channel_updates}
+                            onChange={(e) => setNotificationSettings({...notificationSettings, channel_updates: e.target.checked})}
+                          />
+                          <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                        <div>
+                          <h4 className="text-white font-medium">Marketing Emails</h4>
+                          <p className="text-sm text-zinc-400">Receive weekly newsletters and recommendations.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={notificationSettings.marketing}
+                            onChange={(e) => setNotificationSettings({...notificationSettings, marketing: e.target.checked})}
+                          />
+                          <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-6 flex justify-end">
+                      <button 
+                        onClick={handleSaveNotificationSettings}
+                        disabled={isSavingSettings}
+                        className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-6 py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
+                      >
+                        {isSavingSettings ? 'Saving...' : 'Save Preferences'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {settingsTab === 'system' && (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-bold text-white mb-6">System & Data</h2>
+                    
+                    <div className="space-y-4">
+                      <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl flex items-start gap-4">
+                        <div className="p-2 bg-zinc-800 rounded-lg mt-1">
+                          <HardDrive className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-white font-medium">Storage & Cache</h4>
+                          <p className="text-sm text-zinc-400 mb-3">Manage your cloud storage usage and local application cache.</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-zinc-500">
+                              Cloud Storage: {(storageSize / 1024).toFixed(2)} KB
+                            </span>
+                            <button 
+                              onClick={handleClearCache}
+                              className="text-sm text-amber-500 hover:text-amber-400 font-medium transition-colors"
+                            >
+                              Clear Local Cache
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl flex items-start gap-4">
+                        <div className="p-2 bg-zinc-800 rounded-lg mt-1">
+                          <Shield className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-white font-medium">Privacy & Security</h4>
+                          <p className="text-sm text-zinc-400 mb-3">Your current session is active and secured with end-to-end encryption.</p>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-zinc-500">Last Sign In:</span>
+                              <span className="text-zinc-300">
+                                {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-zinc-500">Session ID:</span>
+                              <span className="text-zinc-300 font-mono">
+                                {sessionInfo?.access_token ? `${sessionInfo.access_token.substring(0, 12)}...` : 'N/A'}
+                              </span>
+                            </div>
+                            <button className="text-sm text-amber-500 hover:text-amber-400 font-medium transition-colors">
+                              Manage Active Sessions
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-4 mt-8">
+                        <div className="p-2 bg-red-500/20 rounded-lg mt-1">
+                          <Trash2 className="w-5 h-5 text-red-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-red-500 font-medium">Danger Zone</h4>
+                          <p className="text-sm text-red-400/80 mb-3">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                          <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors">
+                            Delete Account
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

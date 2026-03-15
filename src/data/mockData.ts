@@ -9,6 +9,10 @@ export interface Drama {
   trailerUrl: string;
   rating: number;
   country: string;
+  channel_id: string;
+  channel_name: string;
+  channel_avatar: string;
+  channel_subscribers: string;
 }
 
 export interface Review {
@@ -35,7 +39,11 @@ export const dramas: Drama[] = [
     summary: "In a magical world of inter-clan rivalry, two soulmates face treacherous schemes and uncover a dark mystery linked to a tragic event in the past. A beautifully crafted story of loyalty, sacrifice, and redemption.",
     trailerUrl: "https://www.youtube.com/embed/BfKhREVFLkQ",
     rating: 4.9,
-    country: "China"
+    country: "China",
+    channel_id: "00000000-0000-0000-0000-000000000001",
+    channel_name: "Tencent Video",
+    channel_avatar: "https://picsum.photos/seed/tencent/100/100",
+    channel_subscribers: "15M"
   },
   {
     id: "2",
@@ -47,7 +55,11 @@ export const dramas: Drama[] = [
     summary: "A low-ranking fairy accidentally resurrects a powerful demon lord. To regain his freedom, he must protect her, but unexpected feelings begin to bloom between the two sworn enemies.",
     trailerUrl: "https://www.youtube.com/embed/8v_oWq5z7Q8",
     rating: 4.8,
-    country: "China"
+    country: "China",
+    channel_id: "00000000-0000-0000-0000-000000000002",
+    channel_name: "iQIYI",
+    channel_avatar: "https://picsum.photos/seed/iqiyi/100/100",
+    channel_subscribers: "12M"
   },
   {
     id: "3",
@@ -59,7 +71,11 @@ export const dramas: Drama[] = [
     summary: "A heartwarming story following a young girl's secret crush on her older brother's friend, which blossoms into a beautiful romance years later when they reunite.",
     trailerUrl: "https://www.youtube.com/embed/example",
     rating: 4.7,
-    country: "China"
+    country: "China",
+    channel_id: "00000000-0000-0000-0000-000000000003",
+    channel_name: "YOUKU",
+    channel_avatar: "https://picsum.photos/seed/youku/100/100",
+    channel_subscribers: "10M"
   },
   {
     id: "4",
@@ -71,7 +87,11 @@ export const dramas: Drama[] = [
     summary: "A brilliant strategist returns to the capital under a new identity to clear his family's name and secretly help his childhood friend ascend to the throne.",
     trailerUrl: "https://www.youtube.com/embed/example2",
     rating: 5.0,
-    country: "China"
+    country: "China",
+    channel_id: "00000000-0000-0000-0000-000000000001",
+    channel_name: "Tencent Video",
+    channel_avatar: "https://picsum.photos/seed/tencent/100/100",
+    channel_subscribers: "15M"
   },
   {
     id: "5",
@@ -83,7 +103,11 @@ export const dramas: Drama[] = [
     summary: "A talented female detective, framed for her family's murder, disguises herself as a eunuch to solve the case and uncovers a massive conspiracy in the imperial court.",
     trailerUrl: "https://www.youtube.com/embed/example3",
     rating: 4.5,
-    country: "China"
+    country: "China",
+    channel_id: "00000000-0000-0000-0000-000000000001",
+    channel_name: "Tencent Video",
+    channel_avatar: "https://picsum.photos/seed/tencent/100/100",
+    channel_subscribers: "15M"
   },
   {
     id: "6",
@@ -95,7 +119,11 @@ export const dramas: Drama[] = [
     summary: "A touching Khmer drama about a young boy raised in a pagoda who struggles to find his place in modern society while holding onto traditional values.",
     trailerUrl: "https://www.youtube.com/embed/example4",
     rating: 4.6,
-    country: "Cambodia"
+    country: "Cambodia",
+    channel_id: "00000000-0000-0000-0000-000000000004",
+    channel_name: "Legend | Film Studio",
+    channel_avatar: "https://picsum.photos/seed/legend/100/100",
+    channel_subscribers: "1.2M"
   }
 ];
 
