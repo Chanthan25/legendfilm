@@ -96,6 +96,104 @@ export async function addReview(userId: string, dramaId: string, rating: number,
   return error;
 }
 
+// Drama related API combinations
+export async function getDramas() {
+  const { data, error } = await supabase
+    .from('dramas')
+    .select('*, profiles(display_name, avatar_url, followers_count)')
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching dramas:', error);
+    return [];
+  }
+  return data;
+}
+
+export async function getDramaById(dramaId: string) {
+  const { data, error } = await supabase
+    .from('dramas')
+    .select('*, profiles(display_name, avatar_url, followers_count)')
+    .eq('id', dramaId)
+    .single();
+    
+  if (error) {
+    console.error('Error fetching drama:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function getDramasByIds(dramaIds: string[]) {
+  if (!dramaIds || dramaIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('dramas')
+    .select('*, profiles(display_name, avatar_url, followers_count)')
+    .in('id', dramaIds);
+    
+  if (error) {
+    console.error('Error fetching dramas by IDs:', error);
+    return [];
+  }
+  return data;
+}
+
+export async function getDramasByChannel(channelId: string) {
+  const { data, error } = await supabase
+    .from('dramas')
+    .select('*, profiles(display_name, avatar_url, followers_count)')
+    .eq('channel_id', channelId)
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching channel dramas:', error);
+    return [];
+  }
+  return data;
+}
+
+export async function uploadDramaData(dramaData: any) {
+  const { data, error } = await supabase
+    .from('dramas')
+    .insert(dramaData)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error('Error uploading drama:', error);
+    throw error;
+  }
+  return data;
+}
+
+export async function updateDramaData(dramaId: string, dramaData: any) {
+  const { data, error } = await supabase
+    .from('dramas')
+    .update(dramaData)
+    .eq('id', dramaId)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error('Error updating drama:', error);
+    throw error;
+  }
+  return data;
+}
+
+export async function deleteDrama(dramaId: string) {
+  const { error } = await supabase
+    .from('dramas')
+    .delete()
+    .eq('id', dramaId);
+    
+  if (error) {
+    console.error('Error deleting drama:', error);
+    throw error;
+  }
+  return !error;
+}
+
 export async function getFollowStats(userId: string) {
   const { count: followers } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', userId);
   const { count: following } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', userId);
@@ -189,24 +287,25 @@ export async function markAllNotificationsRead(userId: string) {
 }
 
 export async function getNotificationSettings(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('notification_settings')
-    .eq('id', userId)
-    .single();
-  if (error) {
-    console.error('Error fetching notification settings:', error);
-    return null;
+  try {
+    const localSettings = localStorage.getItem(`notification_settings_${userId}`);
+    if (localSettings) {
+      return JSON.parse(localSettings);
+    }
+  } catch (e) {
+    console.error('Error parsing local notification settings:', e);
   }
-  return data?.notification_settings || { new_episode: true, channel_updates: true, marketing: false };
+  return { new_episode: true, channel_updates: true, marketing: false };
 }
 
 export async function updateNotificationSettings(userId: string, settings: any) {
-  const { error } = await supabase
-    .from('profiles')
-    .upsert({ id: userId, notification_settings: settings });
-  if (error) console.error('Error updating notification settings:', error);
-  return error;
+  try {
+    localStorage.setItem(`notification_settings_${userId}`, JSON.stringify(settings));
+    return null;
+  } catch (error) {
+    console.error('Error updating notification settings:', error);
+    return error;
+  }
 }
 
 export async function getStorageUsage(userId: string) {

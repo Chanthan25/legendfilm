@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { Review, Drama } from '../data/mockData';
+import { Review, Drama } from '../types';
 import { motion } from 'motion/react';
 
 export default function ReviewCard({ review, drama }: { review: Review, drama?: Drama }) {

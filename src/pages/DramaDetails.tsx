@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Calendar, Film, Globe, ThumbsUp, Share2, Plus, Check, MessageSquare, MoreVertical, ThumbsDown, ChevronDown, ChevronUp } from 'lucide-react';
-import { dramas } from '../data/mockData';
+import { Star, Calendar, Film, Globe, ThumbsUp, Share2, Plus, Check, MessageSquare, MoreVertical, ThumbsDown, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import ShareButtons from '../components/ShareButtons';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/AuthContext';
-import { getWatchlist, toggleWatchlist, getReviews, addReview, checkIsFollowing, getFollowStats, toggleFollow, getDramaStats, getUserDramaReaction, toggleDramaReaction, addDramaShare, getProfile } from '../lib/api';
+import { getWatchlist, toggleWatchlist, getReviews, addReview, checkIsFollowing, getFollowStats, toggleFollow, getDramaStats, getUserDramaReaction, toggleDramaReaction, addDramaShare, getProfile, getDramaById, getDramas } from '../lib/api';
 
 export default function DramaDetails() {
   const { id } = useParams<{ id: string }>();
-  const drama = dramas.find(d => d.id === id);
-  const relatedDramas = dramas.filter(d => d.id !== id).slice(0, 8);
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [drama, setDrama] = useState<any>(null);
+  const [relatedDramas, setRelatedDramas] = useState<any[]>([]);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
@@ -33,21 +32,26 @@ export default function DramaDetails() {
   const [channelProfile, setChannelProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (!id || !drama) return;
+    if (!id) return;
 
     async function loadData() {
       setIsLoading(true);
       try {
+        const fetchedDrama = await getDramaById(id);
+        const allDramas = await getDramas();
+        setDrama(fetchedDrama);
+        setRelatedDramas(allDramas.filter((d: any) => d.id !== id).slice(0, 8));
+
         const dramaReviews = await getReviews(undefined, id);
         setReviews(dramaReviews);
 
         // Fetch channel stats and profile
-        if (drama?.channel_id) {
-          const stats = await getFollowStats(drama.channel_id);
+        if (fetchedDrama?.channel_id) {
+          const stats = await getFollowStats(fetchedDrama.channel_id);
           setSubscriberCount(stats.followers);
           
           // Try to fetch the real profile for this channel_id
-          const profile = await getProfile(drama.channel_id);
+          const profile = await getProfile(fetchedDrama.channel_id);
           if (profile) {
             setChannelProfile(profile);
           }
@@ -63,8 +67,8 @@ export default function DramaDetails() {
           const watchlist = await getWatchlist(user.id);
           setIsWatchlisted(watchlist.includes(id));
 
-          if (drama?.channel_id) {
-            const following = await checkIsFollowing(user.id, drama.channel_id);
+          if (fetchedDrama?.channel_id) {
+            const following = await checkIsFollowing(user.id, fetchedDrama.channel_id);
             setIsSubscribed(following);
           }
           
@@ -80,7 +84,7 @@ export default function DramaDetails() {
 
     loadData();
     window.scrollTo(0, 0);
-  }, [id, user, drama]);
+  }, [id, user]);
 
   const handleToggleWatchlist = async () => {
     if (!user) {
@@ -231,13 +235,23 @@ export default function DramaDetails() {
           
           {/* Video Player */}
           <div className="w-full aspect-video bg-black rounded-xl overflow-hidden mb-4 shadow-2xl border border-zinc-800/50">
-            <iframe
-              src={drama.trailerUrl}
-              title={`${drama.title} Official Trailer`}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            ></iframe>
+            {drama.trailerUrl?.includes('youtube.com') || drama.trailerUrl?.includes('vimeo.com') ? (
+              <iframe
+                src={drama.trailerUrl}
+                title={`${drama.title} Official Trailer`}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <video
+                src={drama.trailerUrl}
+                title={`${drama.title} Official Trailer`}
+                className="w-full h-full border-0 object-contain"
+                controls
+                controlsList="nodownload"
+              ></video>
+            )}
           </div>
 
           {/* Title & Actions */}
@@ -284,6 +298,26 @@ export default function DramaDetails() {
               <button className="flex items-center justify-center bg-zinc-800/80 hover:bg-zinc-700 w-9 h-9 rounded-full text-white transition-colors flex-shrink-0">
                 <MoreVertical className="w-4 h-4" />
               </button>
+
+              {user?.id === drama?.channel_id && (
+                <button 
+                  onClick={async () => {
+                    if (window.confirm("Are you sure you want to delete this drama?")) {
+                      const { deleteDrama } = await import('../lib/api');
+                      try {
+                        await deleteDrama(drama.id);
+                        alert("Drama deleted successfully");
+                        navigate('/');
+                      } catch (e) {
+                        alert("Error deleting drama");
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-red-600/80 hover:bg-red-500 px-4 py-2 rounded-full text-white font-medium text-sm transition-colors whitespace-nowrap"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              )}
             </div>
           </div>
 

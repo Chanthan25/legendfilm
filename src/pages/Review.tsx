@@ -1,10 +1,9 @@
 import { useParams, Link } from 'react-router-dom';
 import { Star, ThumbsUp, ThumbsDown, ArrowLeft } from 'lucide-react';
-import { reviews as mockReviews, dramas } from '../data/mockData';
 import ShareButtons from '../components/ShareButtons';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { getReviewById } from '../lib/api';
+import { getReviewById, getDramaById } from '../lib/api';
 
 export default function Review() {
   const { id } = useParams<{ id: string }>();
@@ -17,14 +16,13 @@ export default function Review() {
       if (!id) return;
       setIsLoading(true);
 
-      // Try to find in mock data first
-      let foundReview = mockReviews.find(r => r.id === id);
-      
-      if (!foundReview) {
-        // Fetch from Supabase
+      try {
         const dbReview = await getReviewById(id);
+        
         if (dbReview) {
-          foundReview = {
+          const fetchedDrama = await getDramaById(dbReview.drama_id);
+          
+          setReview({
             id: dbReview.id,
             dramaId: dbReview.drama_id,
             author: dbReview.profiles?.display_name || 'User',
@@ -35,16 +33,15 @@ export default function Review() {
             cons: ['Slow pacing'],
             worthWatching: dbReview.rating >= 3,
             finalOpinion: dbReview.rating >= 3 ? 'A solid watch.' : 'Not recommended.'
-          };
+          });
+          
+          setDrama(fetchedDrama);
         }
+      } catch (error) {
+        console.error("Failed to load review:", error);
+      } finally {
+        setIsLoading(false);
       }
-
-      if (foundReview) {
-        setReview(foundReview);
-        setDrama(dramas.find(d => d.id === foundReview?.dramaId));
-      }
-      
-      setIsLoading(false);
     }
 
     loadReview();

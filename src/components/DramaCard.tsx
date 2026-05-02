@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
-import { Drama } from '../data/mockData';
+import { Drama } from '../types';
 import { motion } from 'motion/react';
 
 export default function DramaCard({ drama }: { drama: Drama }) {

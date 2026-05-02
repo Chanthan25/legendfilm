@@ -1,27 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import { motion } from 'motion/react';
-import { dramas } from '../data/mockData';
 import DramaCard from '../components/DramaCard';
+import { getDramas } from '../lib/api';
 
 export default function Search() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [dramas, setDramas] = useState<any[]>([]);
 
-  const filteredDramas = dramas.filter(d => 
-    d.title.toLowerCase().includes(query.toLowerCase()) ||
-    d.genre.some(g => g.toLowerCase().includes(query.toLowerCase()))
+  useEffect(() => {
+    async function loadData() {
+      setIsSearching(true);
+      const fetchedDramas = await getDramas();
+      setDramas(fetchedDramas || []);
+      setIsSearching(false);
+    }
+    loadData();
+  }, []);
+
+  const filteredDramas = dramas.filter((d: any) => 
+    (d.title && d.title.toLowerCase().includes(query.toLowerCase())) ||
+    (d.genre && Array.isArray(d.genre) && d.genre.some((g: string) => g.toLowerCase().includes(query.toLowerCase())))
   );
 
   useEffect(() => {
     if (query) {
-      setIsSearching(true);
-      const timeout = setTimeout(() => setIsSearching(false), 500);
-      return () => clearTimeout(timeout);
+      if (dramas.length > 0) {
+        setIsSearching(true);
+        const timeout = setTimeout(() => setIsSearching(false), 300);
+        return () => clearTimeout(timeout);
+      }
     } else {
       setIsSearching(false);
     }
-  }, [query]);
+  }, [query, dramas.length]);
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">

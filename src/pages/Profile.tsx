@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { User, Settings, Heart, MessageSquare, LogOut, Edit3, UserPlus, UserMinus, Camera, Palette, Bell, Monitor, HardDrive, Trash2, Shield, Film } from 'lucide-react';
-import { dramas } from '../data/mockData';
 import DramaCard from '../components/DramaCard';
 import ReviewCard from '../components/ReviewCard';
 import { useAuth } from '../lib/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow, getNotificationSettings, updateNotificationSettings, getStorageUsage, getSessionInfo } from '../lib/api';
+import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow, getNotificationSettings, updateNotificationSettings, getStorageUsage, getSessionInfo, getDramasByChannel, getDramasByIds } from '../lib/api';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'uploads' | 'watchlist' | 'reviews' | 'settings'>('uploads');
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'notifications' | 'system'>('profile');
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState<any>(null);
@@ -53,14 +52,15 @@ export default function Profile() {
       setIsLoading(true);
       
       try {
-        const [profileData, watchlistIds, reviewsData, followStats, notifSettings, usage, session] = await Promise.all([
+        const [profileData, watchlistIds, reviewsData, followStats, notifSettings, usage, session, channelDramas] = await Promise.all([
           getProfile(profileId),
           getWatchlist(profileId),
           getReviews(profileId),
           getFollowStats(profileId),
           isOwnProfile ? getNotificationSettings(profileId) : Promise.resolve(null),
           isOwnProfile ? getStorageUsage(profileId) : Promise.resolve(0),
-          isOwnProfile ? getSessionInfo() : Promise.resolve(null)
+          isOwnProfile ? getSessionInfo() : Promise.resolve(null),
+          getDramasByChannel(profileId)
         ]);
 
         setProfile(profileData || { id: profileId });
@@ -71,12 +71,17 @@ export default function Profile() {
         }
         setStorageSize(usage);
         setSessionInfo(session);
+        setUploads(channelDramas || []);
         
-        const watchlistedDramas = watchlistIds.map((id: string) => dramas.find(d => d.id === id)).filter(Boolean);
-        setWatchlist(watchlistedDramas);
+        if (watchlistIds && watchlistIds.length > 0) {
+          const watchlistedDramas = await getDramasByIds(watchlistIds);
+          setWatchlist(watchlistedDramas || []);
+        } else {
+          setWatchlist([]);
+        }
+        
         setUserReviews(reviewsData);
         setStats(followStats);
-        setUploads(dramas.filter(d => d.channel_id === profileId));
 
         if (user && !isOwnProfile) {
           const following = await checkIsFollowing(user.id, profileId);
@@ -93,7 +98,7 @@ export default function Profile() {
   }, [profileId, user, isOwnProfile]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate('/');
   };
 

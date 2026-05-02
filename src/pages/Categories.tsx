@@ -1,31 +1,50 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { dramas, categories } from '../data/mockData';
 import DramaCard from '../components/DramaCard';
 import { Filter, ArrowDownUp } from 'lucide-react';
+import { getDramas } from '../lib/api';
 
 export default function Categories() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [activeCountry, setActiveCountry] = useState<string>("All");
   const [sortBy, setSortBy] = useState<string>("rating"); // "rating" | "year"
   const [isLoading, setIsLoading] = useState(true);
+  const [dramas, setDramas] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
+  const [countries, setCountries] = useState<string[]>(["All"]);
 
   useEffect(() => {
-    // Simulate data fetching
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const fetchedDramas = await getDramas();
+        setDramas(fetchedDramas || []);
+        
+        if (fetchedDramas && fetchedDramas.length > 0) {
+          // Extract unique categories (genres)
+          const allGenres = fetchedDramas.flatMap(d => d.genre || []);
+          const uniqueGenres = ["All", ...Array.from(new Set(allGenres))];
+          setCategories(uniqueGenres);
+          
+          // Extract unique countries
+          const uniqueCountries = ["All", ...Array.from(new Set(fetchedDramas.map(d => d.country).filter(Boolean)))];
+          setCountries(uniqueCountries);
+        }
+      } catch (error) {
+        console.error('Failed to load dramas:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
   }, []);
-
-  const countries = ["All", ...Array.from(new Set(dramas.map(d => d.country)))];
 
   const filteredAndSortedDramas = useMemo(() => {
     let result = dramas;
 
     // Filter by genre
     if (activeCategory !== "All") {
-      result = result.filter(d => d.genre.includes(activeCategory));
+      result = result.filter(d => d.genre?.includes(activeCategory));
     }
 
     // Filter by country
@@ -36,15 +55,15 @@ export default function Categories() {
     // Sort
     result = [...result].sort((a, b) => {
       if (sortBy === "rating") {
-        return b.rating - a.rating; // Highest rating first
+        return (b.rating || 0) - (a.rating || 0); // Highest rating first
       } else if (sortBy === "year") {
-        return b.year - a.year; // Newest first
+        return (b.year || 0) - (a.year || 0); // Newest first
       }
       return 0;
     });
 
     return result;
-  }, [activeCategory, activeCountry, sortBy]);
+  }, [dramas, activeCategory, activeCountry, sortBy]);
 
   if (isLoading) {
     return (

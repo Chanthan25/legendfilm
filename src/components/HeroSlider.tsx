@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Drama } from '../data/mockData';
+import { Drama } from '../types';
 import { Link } from 'react-router-dom';
 
 export default function HeroSlider({ dramas }: { dramas: Drama[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    if (!dramas || dramas.length === 0) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % dramas.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [dramas.length]);
+  }, [dramas]);
+
+  if (!dramas || dramas.length === 0) return null;
 
   return (
     <div className="relative w-full h-[500px] flex items-center justify-center perspective-1000">

@@ -1,26 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, ChevronRight } from 'lucide-react';
-import { dramas, reviews } from '../data/mockData';
 import DramaCard from '../components/DramaCard';
 import ReviewCard from '../components/ReviewCard';
 import HeroSlider from '../components/HeroSlider';
 import { motion } from 'motion/react';
+import { getDramas, getReviews } from '../lib/api';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const [dramas, setDramas] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate data fetching
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [fetchedDramas, fetchedReviews] = await Promise.all([
+          getDramas(),
+          getReviews()
+        ]);
+        setDramas(fetchedDramas || []);
+        setReviews(fetchedReviews || []);
+      } catch (error) {
+        console.error('Failed to load home data', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
   const trendingDramas = dramas.slice(0, 4);
   const latestReviews = reviews.slice(0, 2);
-  const featuredDrama = dramas[0];
+  const featuredDrama = dramas[0] || null;
 
   if (isLoading) {
     return (
@@ -33,6 +46,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950">
       {/* Hero Section */}
+      {featuredDrama ? (
       <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img 
@@ -70,8 +84,9 @@ export default function Home() {
                 <Play className="w-5 h-5 fill-current" /> Read Summary
               </Link>
               <Link 
-                to={`/review/${reviews.find(r => r.dramaId === featuredDrama.id)?.id}`}
+                to={`/review/${reviews.find(r => r.drama_id === featuredDrama.id)?.id || ''}`}
                 className="bg-zinc-800/80 hover:bg-zinc-700 backdrop-blur-md text-white border border-zinc-700 px-8 py-3 rounded-full font-bold transition-colors"
+                style={{ pointerEvents: reviews.find(r => r.drama_id === featuredDrama.id) ? 'auto' : 'none', opacity: reviews.find(r => r.drama_id === featuredDrama.id) ? 1 : 0.5 }}
               >
                 View Review
               </Link>
@@ -83,6 +98,14 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : (
+        <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+          <div className="text-center text-white">
+            <h1 className="text-4xl font-bold mb-4">No Dramas Found</h1>
+            <p className="text-zinc-400">Be the first to upload one!</p>
+          </div>
+        </section>
+      )}
 
       {/* Trending Section */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Film, Plus, Image as ImageIcon, Calendar, Globe, Star, FileText, Video } from 'lucide-react';
-import { dramas, Drama } from '../data/mockData';
 import { useAuth } from '../lib/AuthContext';
+import { uploadDramaData } from '../lib/api';
 
 export default function Create() {
   const navigate = useNavigate();
@@ -45,32 +45,33 @@ export default function Create() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Create a new drama object
-    const newDrama: Drama = {
-      id: Date.now().toString(),
-      title: formData.title,
-      genre: formData.genre.split(',').map(g => g.trim()).filter(Boolean),
-      year: Number(formData.year),
-      episodes: Number(formData.episodes),
-      poster: posterPreview || `https://api.dicebear.com/7.x/shapes/svg?seed=${formData.title}`,
-      summary: formData.summary,
-      trailerUrl: trailerPreview || '',
-      rating: Number(formData.rating),
-      country: formData.country,
-      channel_id: user.id,
-      channel_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Unknown',
-      channel_avatar: user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
-      channel_subscribers: '0'
-    };
+    try {
+      const newDramaData = {
+        title: formData.title,
+        genre: formData.genre.split(',').map(g => g.trim()).filter(Boolean),
+        year: Number(formData.year),
+        episodes: Number(formData.episodes),
+        poster: posterPreview || `https://api.dicebear.com/7.x/shapes/svg?seed=${formData.title}`,
+        summary: formData.summary,
+        trailerUrl: trailerPreview || '',
+        rating: Number(formData.rating),
+        country: formData.country,
+        channel_id: user.id
+      };
 
-    // Add to mock data (in a real app, this would be an API call)
-    dramas.unshift(newDrama);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setIsSubmitting(false);
-    navigate(`/drama/${newDrama.id}`);
+      const result = await uploadDramaData(newDramaData);
+      
+      if (result && result.id) {
+        navigate(`/drama/${result.id}`);
+      } else {
+        throw new Error('Failed to create drama');
+      }
+    } catch (error) {
+      console.error("Error creating drama:", error);
+      alert("Failed to upload. Please check the console for details.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -242,7 +243,7 @@ export default function Create() {
                 {trailerPreview && (
                   <div className="mt-4">
                     <p className="text-sm text-zinc-400 mb-2">Preview:</p>
-                    <video src={trailerPreview} controls className="max-h-48 rounded-lg w-full object-cover" />
+                    <video src={trailerPreview} controls controlsList="nodownload" className="max-h-48 rounded-lg w-full object-cover" />
                   </div>
                 )}
               </div>
