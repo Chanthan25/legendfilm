@@ -1,28 +1,111 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  /* Dark Mode Default - Rich Golden Temple Imperial theme */
+  --bg-app: #0d0907; /* Deep cinematic warm obsidian */
+  --bg-container: rgba(13, 9, 7, 0.76);
+  --bg-card: rgba(24, 18, 15, 0.92);
+  --bg-card-hover: rgba(36, 28, 24, 0.97);
+  --border-color: rgba(212, 175, 55, 0.16); /* Warm gold border */
+  --text-primary: #fcfbfa; /* Warm paper white */
+  --text-secondary: #e5d2c4; /* Light sand gold */
+  --text-muted: #a68c7c; /* Deep sand gold */
+  --text-inverted: #0d0907;
+  --badge-bg: rgba(212, 175, 55, 0.15);
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  
+  --gold-500: #D4AF37; /* Metallic Royal Gold */
+  --gold-400: #E5C25D; 
+  --gold-600: #B59026;
+  
+  --crimson-500: #C21E2E; /* Royal Crimson */
+  --crimson-600: #9E101E; /* Imperial Deep Crimson */
+  --crimson-700: #7e0c17;
+}
+
+:root.light {
+  /* Light Mode - Imperial Palace Gold & Crimson aesthetic on fine paper */
+  --bg-app: #f7f5ed; /* Imperial Xuan Warm Paper / Fine Porcelain Ivory */
+  --bg-container: rgba(247, 245, 237, 0.88);
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-hover: rgba(251, 248, 238, 0.98);
+  --border-color: rgba(158, 16, 30, 0.15); /* Soft crimson gold border */
+  --text-primary: #2d1e18; /* Rich Calligraphy Charcoal Espresso */
+  --text-secondary: #5c4436; /* Warm sand brown */
+  --text-muted: #8c7161; /* Muted clay brown */
+  --text-inverted: #f7f5ed;
+  --badge-bg: rgba(158, 16, 30, 0.08); /* Dilute Crimson */
+  --card-shadow: 0 10px 30px rgba(158, 16, 30, 0.05);
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Overwrite zinc colors to map dynamically to theme variables */
+  --color-zinc-950: var(--bg-app);
+  --color-zinc-900: var(--bg-card);
+  --color-zinc-800: var(--border-color);
+  --color-zinc-50: var(--text-primary);
+  --color-zinc-100: var(--text-primary);
+  --color-zinc-200: var(--text-secondary);
+  --color-zinc-300: var(--text-secondary);
+  --color-zinc-400: var(--text-muted);
+  --color-zinc-500: var(--text-muted);
+  --color-zinc-700: var(--border-color);
+
+  /* Set authentic Khmer and Chinese Gilded Gold and Imperial Crimson */
+  --color-amber-500: var(--gold-500);
+  --color-amber-400: var(--gold-400);
+  --color-amber-600: var(--gold-600);
+  
+  --color-red-500: var(--crimson-500);
+  --color-red-600: var(--crimson-600);
+  --color-red-700: var(--crimson-700);
 }
 
 body {
-  /* Replace the URL below with the actual link to your uploaded image */
-  background-image: url('https://cambodianess.com/article/cambodias-angkor-wat-ranked-tripadvisors-most-attractive-tourist-destination-in-asia-for-2025-pm');
+  /* Premium warm sunset/historical temple look of Angkor Wat un-watermarked */
+  background-image: url('https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=2000');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  background-color: #09090b; /* Fallback color */
+  background-color: var(--bg-app);
+  transition: background-color 0.3s ease;
 }
 
-/* Make the main app wrapper semi-transparent so the background image shows through */
+/* Base structural adjustments for glass effects and backdrop transitions */
 #root > div {
-  background-color: rgba(9, 9, 11, 0.75) !important;
+  background-color: var(--bg-container) !important;
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
   backdrop-filter: blur(4px);
 }
 
-/* Make page containers transparent to reveal the background */
+/* Ensure body scrollbars and layout support smooth transition colors */
 main > div.min-h-screen {
   background-color: transparent !important;
 }
 
+header, nav, footer, div, section, article {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Custom Gilded & Gilt details */
+.bg-gilt-gradient {
+  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-400) 50%, var(--gold-600) 100%);
+}
+
+.bg-crimson-gradient {
+  background: linear-gradient(135deg, var(--crimson-500) 0%, var(--crimson-600) 100%);
+}
+
+/* Improved contrast for texts in cards in light mode */
+.light .text-white-always {
+  color: #ffffffbe !important;
+}
+
+.light .text-black-always {
+  color: #000000 !important;
+}

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Search, Menu, X, Film, User, LogIn, Plus, ChevronDown, Facebook, Twitter, Instagram, Youtube, Bell } from 'lucide-react';
+import { Search, Menu, X, Film, User, LogIn, Plus, ChevronDown, Facebook, Twitter, Instagram, Youtube, Bell, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/AuthContext';
+import { useTheme } from '../lib/ThemeContext';
 import { getProfile } from '../lib/api';
 import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -11,6 +12,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const socialRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,15 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="text-zinc-300 hover:text-amber-500 transition-colors p-2 rounded-full hover:bg-zinc-800/60 flex items-center justify-center cursor-pointer"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-red-600" />}
+              </button>
+
               {user ? (
                 <div className="flex items-center gap-2">
                   <Link to="/notifications" className="relative text-zinc-300 hover:text-amber-500 transition-colors p-2 rounded-full hover:bg-zinc-800 flex items-center justify-center" title="Notifications">
@@ -181,6 +192,25 @@ export default function Navbar() {
               <Link to="/inbox" onClick={() => setIsOpen(false)} className="text-zinc-300 hover:text-amber-500 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2">
                 Inbox
               </Link>
+              
+              {/* Mobile Theme Toggle */}
+              <button
+                onClick={() => {
+                  toggleTheme();
+                  setIsOpen(false);
+                }}
+                className="w-full text-left text-zinc-300 hover:text-amber-500 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2 cursor-pointer"
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-500" /> Light Mode
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-red-600" /> Dark Mode
+                  </>
+                )}
+              </button>
               
               {/* Mobile Social Links */}
               <div className="px-3 py-3 border-t border-zinc-800 mt-2">

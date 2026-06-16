@@ -47,16 +47,16 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-950">
       {/* Hero Section */}
       {featuredDrama ? (
-      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden bg-[#0d0907]">
         <div className="absolute inset-0">
           <img 
             src={featuredDrama.poster} 
             alt="Hero Background" 
-            className="w-full h-full object-cover opacity-30 scale-105"
+            className="w-full h-full object-cover opacity-25 scale-105"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0907] via-[#0d0907]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0d0907] via-[#0d0907]/50 to-transparent" />
         </div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
@@ -70,22 +70,22 @@ export default function Home() {
               <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm">Legend | Film Exclusive</span>
               <span className="text-amber-500 text-sm font-semibold tracking-wider uppercase">{featuredDrama.country} Drama</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold text-neutral-50 mb-6 leading-tight">
               {featuredDrama.title}
             </h1>
-            <p className="text-lg text-zinc-300 mb-8 line-clamp-3 leading-relaxed">
+            <p className="text-lg text-neutral-300 mb-8 line-clamp-3 leading-relaxed">
               {featuredDrama.summary}
             </p>
             <div className="flex items-center gap-4">
               <Link 
                 to={`/drama/${featuredDrama.id}`}
-                className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-8 py-3 rounded-full font-bold transition-colors flex items-center gap-2"
+                className="bg-amber-500 hover:bg-amber-400 text-neutral-950 px-8 py-3 rounded-full font-bold transition-colors flex items-center gap-2"
               >
                 <Play className="w-5 h-5 fill-current" /> Read Summary
               </Link>
               <Link 
                 to={`/review/${reviews.find(r => r.drama_id === featuredDrama.id)?.id || ''}`}
-                className="bg-zinc-800/80 hover:bg-zinc-700 backdrop-blur-md text-white border border-zinc-700 px-8 py-3 rounded-full font-bold transition-colors"
+                className="bg-neutral-800/80 hover:bg-neutral-700/80 backdrop-blur-md text-white border border-neutral-700 px-8 py-3 rounded-full font-bold transition-colors"
                 style={{ pointerEvents: reviews.find(r => r.drama_id === featuredDrama.id) ? 'auto' : 'none', opacity: reviews.find(r => r.drama_id === featuredDrama.id) ? 1 : 0.5 }}
               >
                 View Review
