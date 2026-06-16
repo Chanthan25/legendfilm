@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Film, Plus, Image as ImageIcon, Calendar, Globe, Star, FileText, Video } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
-import { uploadDramaData } from '../lib/api';
+import { uploadDramaData, uploadFileWithProgress } from '../lib/api';
 
 export default function Create() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState('Preparing upload...');
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [trailerPreview, setTrailerPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -44,16 +46,43 @@ export default function Create() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setUploadProgress(0);
+    setUploadStatusText('Starting upload...');
 
     try {
+      let finalPosterUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${formData.title}`;
+      let finalTrailerUrl = '';
+
+      if (formData.poster) {
+        setUploadStatusText('Uploading poster...');
+        finalPosterUrl = await uploadFileWithProgress(
+          formData.poster, 
+          `posters/${Date.now()}_${formData.poster.name}`,
+          (progress) => setUploadProgress(progress)
+        );
+      }
+
+      if (formData.trailer) {
+        setUploadProgress(0);
+        setUploadStatusText('Uploading trailer video...');
+        finalTrailerUrl = await uploadFileWithProgress(
+          formData.trailer, 
+          `trailers/${Date.now()}_${formData.trailer.name}`,
+          (progress) => setUploadProgress(progress)
+        );
+      }
+
+      setUploadStatusText('Saving drama data...');
+      setUploadProgress(100);
+
       const newDramaData = {
         title: formData.title,
         genre: formData.genre.split(',').map(g => g.trim()).filter(Boolean),
         year: Number(formData.year),
         episodes: Number(formData.episodes),
-        poster: posterPreview || `https://api.dicebear.com/7.x/shapes/svg?seed=${formData.title}`,
+        poster: finalPosterUrl,
         summary: formData.summary,
-        trailerUrl: trailerPreview || '',
+        trailerUrl: finalTrailerUrl,
         rating: Number(formData.rating),
         country: formData.country,
         channel_id: user.id
@@ -71,6 +100,8 @@ export default function Create() {
       alert("Failed to upload. Please check the console for details.");
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
+      setUploadStatusText('Preparing upload...');
     }
   };
 
@@ -263,6 +294,21 @@ export default function Create() {
                 />
               </div>
             </div>
+
+            {isSubmitting && (
+              <div className="pt-4 border-t border-zinc-800">
+                <div className="flex justify-between text-sm text-zinc-400 mb-2">
+                  <span>{uploadStatusText}</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
+                  <div 
+                    className="bg-amber-500 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
 
             <div className="pt-6 border-t border-zinc-800 flex justify-end">
               <button

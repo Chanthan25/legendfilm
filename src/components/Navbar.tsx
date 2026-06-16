@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/AuthContext';
 import { getProfile } from '../lib/api';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,22 +26,21 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    let unsubscribe: () => void;
+
     async function loadProfile() {
       if (user) {
-        const profile = await getProfile(user.id);
+        const profile = await getProfile(user.id) as any;
         if (profile?.avatar_url) {
           setAvatarUrl(profile.avatar_url);
         } else {
           setAvatarUrl(`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`);
         }
         
-        // Load initial unread count
-        const { count } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('read', false);
-        setUnreadCount(count || 0);
+        const q = query(collection(db, 'notifications'), where('user_id', '==', user.id), where('read', '==', false));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          setUnreadCount(snapshot.size);
+        });
 
       } else {
         setAvatarUrl(null);
@@ -54,38 +54,10 @@ export default function Navbar() {
     };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    
-    // Real-time notifications subscription
-    let subscription: any;
-    if (user) {
-      subscription = supabase
-        .channel('public:notifications_badge')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          if (payload.eventType === 'INSERT' && !payload.new.read) {
-            setUnreadCount(prev => prev + 1);
-          } else if (payload.eventType === 'UPDATE') {
-            if (payload.old.read === false && payload.new.read === true) {
-              setUnreadCount(prev => Math.max(0, prev - 1));
-            } else if (payload.old.read === true && payload.new.read === false) {
-              setUnreadCount(prev => prev + 1);
-            }
-          } else if (payload.eventType === 'DELETE' && !payload.old.read) {
-            setUnreadCount(prev => Math.max(0, prev - 1));
-          }
-        })
-        .subscribe();
-    }
 
     return () => {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
+      if (unsubscribe) unsubscribe();
     };
   }, [user]);
 
@@ -96,7 +68,7 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
               <Film className="w-8 h-8 text-amber-500 group-hover:text-amber-400 transition-colors" />
-              <span className="text-xl font-bold text-zinc-50 tracking-wider uppercase">
+              <span className="inline-block text-[15px] font-bold text-[#ffffff] bg-[#000000] text-center tracking-wider uppercase px-2 py-0.5 rounded">
                 Legend <span className="text-red-600">|</span> Film
               </span>
             </Link>
@@ -112,6 +84,9 @@ export default function Navbar() {
               </Link>
               <Link to="/create" className="text-zinc-300 hover:text-amber-500 transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Create
+              </Link>
+              <Link to="/inbox" className="text-zinc-300 hover:text-amber-500 transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2">
+                Inbox
               </Link>
               
               {/* Social Media Dropdown */}
@@ -202,6 +177,9 @@ export default function Navbar() {
               </Link>
               <Link to="/create" onClick={() => setIsOpen(false)} className="text-zinc-300 hover:text-amber-500 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Create
+              </Link>
+              <Link to="/inbox" onClick={() => setIsOpen(false)} className="text-zinc-300 hover:text-amber-500 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2">
+                Inbox
               </Link>
               
               {/* Mobile Social Links */}

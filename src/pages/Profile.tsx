@@ -5,8 +5,7 @@ import DramaCard from '../components/DramaCard';
 import ReviewCard from '../components/ReviewCard';
 import { useAuth } from '../lib/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow, getNotificationSettings, updateNotificationSettings, getStorageUsage, getSessionInfo, getDramasByChannel, getDramasByIds } from '../lib/api';
+import { getProfile, updateProfile, uploadAvatar, uploadCover, getWatchlist, getReviews, getFollowStats, checkIsFollowing, toggleFollow, getNotificationSettings, updateNotificationSettings, getStorageUsage, getSessionInfo, getDramasByChannel, getDramasByIds, getDramas } from '../lib/api';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +17,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [userReviews, setUserReviews] = useState<any[]>([]);
+  const [allDramas, setAllDramas] = useState<any[]>([]);
   const [uploads, setUploads] = useState<any[]>([]);
   const [stats, setStats] = useState({ followers: 0, following: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
@@ -34,6 +34,8 @@ export default function Profile() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [storageSize, setStorageSize] = useState<number>(0);
   const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState<number | null>(null);
+  const [coverUploadProgress, setCoverUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,7 +54,7 @@ export default function Profile() {
       setIsLoading(true);
       
       try {
-        const [profileData, watchlistIds, reviewsData, followStats, notifSettings, usage, session, channelDramas] = await Promise.all([
+        const [profileDataRaw, watchlistIds, reviewsData, followStats, notifSettings, usage, session, channelDramas, allDramasData] = await Promise.all([
           getProfile(profileId),
           getWatchlist(profileId),
           getReviews(profileId),
@@ -60,8 +62,11 @@ export default function Profile() {
           isOwnProfile ? getNotificationSettings(profileId) : Promise.resolve(null),
           isOwnProfile ? getStorageUsage(profileId) : Promise.resolve(0),
           isOwnProfile ? getSessionInfo() : Promise.resolve(null),
-          getDramasByChannel(profileId)
+          getDramasByChannel(profileId),
+          getDramas()
         ]);
+
+        const profileData = profileDataRaw as any;
 
         setProfile(profileData || { id: profileId });
         setEditName(profileData?.display_name || '');
@@ -72,6 +77,7 @@ export default function Profile() {
         setStorageSize(usage);
         setSessionInfo(session);
         setUploads(channelDramas || []);
+        setAllDramas(allDramasData || []);
         
         if (watchlistIds && watchlistIds.length > 0) {
           const watchlistedDramas = await getDramasByIds(watchlistIds);
@@ -135,21 +141,41 @@ export default function Profile() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const url = await uploadAvatar(user.id, file);
-    if (url) {
-      await updateProfile(user.id, { avatar_url: url });
-      setProfile({ ...profile, avatar_url: url });
-      window.dispatchEvent(new Event('profileUpdated'));
+    setAvatarUploadProgress(0);
+    try {
+      const url = await uploadAvatar(user.id, file, (progress) => {
+        setAvatarUploadProgress(progress);
+      });
+      if (url) {
+        await updateProfile(user.id, { avatar_url: url });
+        setProfile({ ...profile, avatar_url: url });
+        window.dispatchEvent(new Event('profileUpdated'));
+      }
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      alert("Failed to upload avatar. Please check file formatting or size.");
+    } finally {
+      setAvatarUploadProgress(null);
     }
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const url = await uploadCover(user.id, file);
-    if (url) {
-      await updateProfile(user.id, { cover_url: url });
-      setProfile({ ...profile, cover_url: url });
+    setCoverUploadProgress(0);
+    try {
+      const url = await uploadCover(user.id, file, (progress) => {
+        setCoverUploadProgress(progress);
+      });
+      if (url) {
+        await updateProfile(user.id, { cover_url: url });
+        setProfile({ ...profile, cover_url: url });
+      }
+    } catch (err) {
+      console.error("Cover upload failed:", err);
+      alert("Failed to upload cover. Please check file formatting or size.");
+    } finally {
+      setCoverUploadProgress(null);
     }
   };
 
@@ -194,6 +220,13 @@ export default function Profile() {
           ) : (
             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-amber-500/20 to-red-600/20" />
           )}
+
+          {coverUploadProgress !== null && (
+            <div className="absolute top-0 left-0 w-full h-32 bg-zinc-950/70 z-20 flex flex-col items-center justify-center text-xs text-amber-500 font-medium">
+              <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-1"></div>
+              <span>Uploading cover: {coverUploadProgress}%</span>
+            </div>
+          )}
           
           {isOwnProfile && (
             <>
@@ -206,7 +239,8 @@ export default function Profile() {
               />
               <button 
                 onClick={() => coverInputRef.current?.click()}
-                className="absolute top-4 right-4 z-20 px-4 py-2 bg-zinc-950/50 hover:bg-zinc-950/80 backdrop-blur-md text-white rounded-full text-sm font-medium transition-colors flex items-center gap-2 border border-white/10"
+                disabled={coverUploadProgress !== null}
+                className="absolute top-4 right-4 z-20 px-4 py-2 bg-zinc-950/50 hover:bg-zinc-950/80 backdrop-blur-md text-white rounded-full text-sm font-medium transition-colors flex items-center gap-2 border border-white/10 disabled:opacity-50"
               >
                 <Camera className="w-4 h-4" /> Edit Cover
               </button>
@@ -218,9 +252,15 @@ export default function Profile() {
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
-                className="w-32 h-32 rounded-full border-4 border-zinc-950 object-cover bg-zinc-800"
+                className={`w-32 h-32 rounded-full border-4 border-zinc-950 object-cover bg-zinc-800 ${avatarUploadProgress !== null ? 'opacity-40' : ''}`}
                 referrerPolicy="no-referrer"
               />
+              {avatarUploadProgress !== null && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/75 rounded-full text-[10px] text-amber-500 font-semibold z-10">
+                  <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-1"></div>
+                  <span>{avatarUploadProgress}%</span>
+                </div>
+              )}
               {isOwnProfile && (
                 <>
                   <input 
@@ -232,7 +272,8 @@ export default function Profile() {
                   />
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 bg-amber-500 text-zinc-950 rounded-full hover:bg-amber-400 transition-colors"
+                    disabled={avatarUploadProgress !== null}
+                    className="absolute bottom-0 right-0 p-2 bg-amber-500 text-zinc-950 rounded-full hover:bg-amber-400 transition-colors disabled:opacity-50"
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -411,7 +452,7 @@ export default function Profile() {
                 </div>
               ) : (
                 userReviews.map((review, index) => {
-                  const drama = dramas.find(d => d.id === review.drama_id);
+                  const drama = allDramas.find(d => d.id === review.drama_id);
                   // Map database review to component format
                   const mappedReview = {
                     id: review.id,
@@ -432,7 +473,7 @@ export default function Profile() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <ReviewCard review={mappedReview} drama={drama} />
+                      <ReviewCard review={mappedReview as any} drama={drama} />
                     </motion.div>
                   );
                 })

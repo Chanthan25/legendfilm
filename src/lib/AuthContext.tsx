@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { auth, onAuthStateChanged, firebaseSignOut } from './firebase';
 
 type AuthContextType = {
-  user: User | null;
-  session: Session | null;
+  user: any | null;
+  session: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -17,59 +16,46 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await firebaseSignOut(auth);
       setSession(null);
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);
-      // Even if server sign out fails, clear local state
       setSession(null);
       setUser(null);
     }
   };
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession()
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          console.error('Error getting session:', error.message);
-          // If the session is invalid, clear it
-          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-            signOut();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('Firebase auth state change:', firebaseUser);
+      
+      if (firebaseUser) {
+        // Map Firebase user to Supabase-like user object to avoid breaking existing code
+        const mappedUser = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          user_metadata: {
+            display_name: firebaseUser.displayName,
+            avatar_url: firebaseUser.photoURL,
           }
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Unexpected error during session check:', err);
-        setLoading(false);
-      });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event);
-      
-      if (event === 'SIGNED_OUT') {
-        setSession(null);
+        };
+        setUser(mappedUser);
+        setSession({ user: mappedUser });
+      } else {
         setUser(null);
-      } else if (session) {
-        setSession(session);
-        setUser(session.user);
+        setSession(null);
       }
-      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   return (

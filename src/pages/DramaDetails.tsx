@@ -104,7 +104,7 @@ export default function DramaDetails() {
     }
     if (!drama?.channel_id) return;
 
-    const error = await toggleFollow(user.id, drama.channel_id, isSubscribed);
+    const error = await toggleFollow(user.id, drama.channel_id, isSubscribed) as any;
     
     if (error) {
       if (error.code === '23503') {

@@ -17,6 +17,7 @@ import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
+import Inbox from './pages/Inbox';
 import { AuthProvider } from './lib/AuthContext';
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/inbox" element={<Inbox />} />
             </Routes>
           </main>
           <Footer />

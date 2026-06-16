@@ -1,5 +1,8 @@
 {
-  "name": "Legend | Film",
+  "name": "Legend Film",
   "description": "A legal, copyright-safe drama review website for Khmer and Chinese series.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

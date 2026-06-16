@@ -4,7 +4,8 @@ import { Bell, CheckCircle2, Circle, Clock, Trash2 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../lib/api';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
 export default function Notifications() {
   const { user, loading: authLoading } = useAuth();
@@ -19,57 +20,46 @@ export default function Notifications() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    let unsubscribe: () => void;
+
     async function loadNotifications() {
       if (!user) return;
       setIsLoading(true);
-      const data = await getNotifications(user.id);
-      setNotifications(data);
-      setIsLoading(false);
+      
+      const q = query(collection(db, 'notifications'), where('user_id', '==', user.id));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const notifs: any[] = [];
+        snapshot.forEach(doc => {
+          notifs.push({ id: doc.id, ...doc.data() });
+        });
+        notifs.sort((a, b) => b.created_at?.seconds - a.created_at?.seconds);
+        setNotifications(notifs);
+        setIsLoading(false);
+      });
     }
 
     loadNotifications();
 
-    if (user) {
-      const subscription = supabase
-        .channel('public:notifications')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [payload.new, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
-          } else if (payload.eventType === 'DELETE') {
-            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-          }
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user]);
 
   const handleMarkRead = async (id: string, read: boolean) => {
     if (read) return;
     await markNotificationRead(id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const handleMarkAllRead = async () => {
     if (!user) return;
     await markAllNotificationsRead(user.id);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('notifications').delete().eq('id', id);
-    if (!error) {
-      setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -139,7 +129,7 @@ export default function Notifications() {
                     </p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">
                       <Clock className="w-3 h-3" />
-                      {new Date(notification.created_at).toLocaleString()}
+                      {notification.created_at ? new Date(notification.created_at.seconds * 1000).toLocaleString() : 'Just now'}
                     </div>
                   </div>
                   <button 

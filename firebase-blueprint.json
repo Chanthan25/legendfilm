@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "profile": {
+      "title": "Profile",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "cover_url": { "type": "string" },
+        "bio": { "type": "string" },
+        "followers_count": { "type": "number" },
+        "notification_settings": {
+          "type": "object",
+          "properties": {
+            "new_episode": { "type": "boolean" },
+            "channel_updates": { "type": "boolean" },
+            "marketing": { "type": "boolean" }
+          }
+        },
+        "created_at": { "type": "timestamp" }
+      },
+      "required": ["id", "display_name"]
+    },
+    "drama": {
+      "title": "Drama",
+      "description": "Video/drama definition",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "genre": { "type": "array", "items": { "type": "string" } },
+        "year": { "type": "number" },
+        "episodes": { "type": "number" },
+        "poster": { "type": "string" },
+        "summary": { "type": "string" },
+        "trailerUrl": { "type": "string" },
+        "rating": { "type": "number" },
+        "country": { "type": "string" },
+        "channel_id": { "type": "string" },
+        "created_at": { "type": "timestamp" }
+      },
+      "required": ["title", "channel_id"]
+    },
+    "review": {
+      "title": "Review",
+      "description": "Review for a drama",
+      "type": "object",
+      "properties": {
+        "drama_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "rating": { "type": "number" },
+        "content": { "type": "string" },
+        "created_at": { "type": "timestamp" }
+      },
+      "required": ["drama_id", "user_id", "rating"]
+    },
+    "watchlist_item": {
+      "title": "Watchlist Item",
+      "description": "A drama in a user's watchlist",
+      "type": "object",
+      "properties": {
+        "drama_id": { "type": "string" },
+        "created_at": { "type": "timestamp" }
+      },
+      "required": ["drama_id"]
+    },
+    "follower_item": {
+      "title": "Follower Item",
+      "description": "Follow relationship",
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "timestamp" }
+      }
+    },
+    "drama_reaction": {
+      "title": "Drama Reaction",
+      "description": "Like or dislike for a drama",
+      "type": "object",
+      "properties": {
+        "reaction_type": { "type": "string", "enum": ["like", "dislike"] },
+        "created_at": { "type": "timestamp" }
+      },
+      "required": ["reaction_type"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/profile" },
+      "description": "User profiles. id == documentId."
+    },
+    "/dramas/{dramaId}": {
+      "schema": { "$ref": "#/entities/drama" },
+      "description": "All dramas in the system."
+    },
+    "/dramas/{dramaId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/review" },
+      "description": "Reviews organized by drama."
+    },
+    "/profiles/{userId}/watchlist/{dramaId}": {
+      "schema": { "$ref": "#/entities/watchlist_item" },
+      "description": "Watchlist for a user."
+    },
+    "/profiles/{userId}/followers/{followerId}": {
+      "schema": { "$ref": "#/entities/follower_item" },
+      "description": "Users who follow {userId}."
+    },
+    "/profiles/{userId}/following/{followingId}": {
+      "schema": { "$ref": "#/entities/follower_item" },
+      "description": "Users whom {userId} is following."
+    },
+    "/dramas/{dramaId}/reactions/{userId}": {
+      "schema": { "$ref": "#/entities/drama_reaction" },
+      "description": "User reactions to a specific drama."
+    }
+  }
+}
