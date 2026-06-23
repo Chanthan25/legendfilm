@@ -1,18 +1,28 @@
 import { Link } from 'react-router-dom';
-import { Search, Menu, X, Film, User, LogIn, Plus, ChevronDown, Facebook, Twitter, Instagram, Youtube, Bell, Sun, Moon } from 'lucide-react';
+import { Search, Menu, X, Film, User, LogIn, Plus, ChevronDown, Facebook, Twitter, Instagram, Youtube, Bell, Sun, Moon, Sparkles } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/AuthContext';
-import { useTheme } from '../lib/ThemeContext';
+import { useTheme, ThemeColor } from '../lib/ThemeContext';
 import { getProfile } from '../lib/api';
 import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
+const themeColorsList = [
+  { id: 'golden' as const, color: '#D4AF37', label: 'មាសអធិរាជ', labelEn: 'Imperial Golden' },
+  { id: 'crimson' as const, color: '#E63946', label: 'ក្រហមល័ក្ខ', labelEn: 'Royal Crimson' },
+  { id: 'jade' as const, color: '#10B981', label: 'ត្បូងមរកត', labelEn: 'Emerald Jade' },
+  { id: 'sapphire' as const, color: '#3B82F6', label: 'ត្បូងកណ្តៀង', labelEn: 'Ocean Sapphire' },
+  { id: 'purple' as const, color: '#8B5CF6', label: 'ស្វាយអមិទិស', labelEn: 'Orchid Amethyst' },
+  { id: 'pink' as const, color: '#EC4899', label: 'ឈូកពិសិដ្ឋ', labelEn: 'Sacred Lotus' },
+  { id: 'sunset' as const, color: '#F97316', label: 'សូរ្យសេងស្ពាន់', labelEn: 'Copper Sunset' },
+];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeColor, toggleTheme, setThemeColor } = useTheme();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const socialRef = useRef<HTMLDivElement>(null);
@@ -65,14 +75,16 @@ export default function Navbar() {
 
   return (
     <nav className="bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 group">
-              <Film className="w-8 h-8 text-amber-500 group-hover:text-amber-400 transition-colors" />
-              <span className="inline-block text-[15px] font-bold text-[#ffffff] bg-[#000000] text-center tracking-wider uppercase px-2 py-0.5 rounded">
-                Legend <span className="text-red-600">|</span> Film
-              </span>
+            <Link to="/" className="rainbow-glow-outer group scale-95 hover:scale-100 transition-transform duration-300">
+              <div className="rainbow-glow-inner">
+                <Film className="w-5 h-5 text-amber-500 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="text-[13px] sm:text-[14px] font-extrabold text-white tracking-wider uppercase">
+                  Legend <span className="text-red-500">|</span> Film
+                </span>
+              </div>
             </Link>
           </div>
           
@@ -90,6 +102,14 @@ export default function Navbar() {
               <Link to="/inbox" className="text-zinc-300 hover:text-amber-500 transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2">
                 Inbox
               </Link>
+              
+              {/* Features Trigger */}
+              <button 
+                onClick={() => document.getElementById('sidebar-trigger-btn')?.click()}
+                className="text-amber-500 hover:text-amber-400 transition-all px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer animate-pulse"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> មុខងារថ្មីៗ
+              </button>
               
               {/* Social Media Dropdown */}
               <div className="relative" ref={socialRef}>
@@ -124,6 +144,23 @@ export default function Navbar() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* 7 Theme color circles palette */}
+              <div className="flex items-center gap-1.5 border-r border-zinc-800/40 pr-3 mr-1">
+                {themeColorsList.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setThemeColor(c.id)}
+                    style={{ backgroundColor: c.color }}
+                    className={`w-4 h-4 rounded-full border transition-all duration-200 cursor-pointer hover:scale-125 ${
+                      themeColor === c.id 
+                        ? 'border-white scale-110 ring-1 ring-white/50 ring-offset-1 ring-offset-zinc-950' 
+                        : 'border-transparent opacity-60 hover:opacity-100'
+                    }`}
+                    title={`${c.label} (${c.labelEn})`}
+                  />
+                ))}
               </div>
 
               {/* Theme Toggle Button */}
@@ -192,6 +229,17 @@ export default function Navbar() {
               <Link to="/inbox" onClick={() => setIsOpen(false)} className="text-zinc-300 hover:text-amber-500 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2">
                 Inbox
               </Link>
+              <button 
+                onClick={() => {
+                  setIsOpen(false);
+                  setTimeout(() => {
+                    document.getElementById('sidebar-trigger-btn')?.click();
+                  }, 120);
+                }}
+                className="w-full text-left font-bold text-amber-500 hover:text-amber-400 block px-3 py-2 rounded-md text-base font-medium flex items-center gap-2 cursor-pointer bg-amber-500/5 mt-1"
+              >
+                <Sparkles className="w-4 h-4 animate-pulse" /> មុខងារពិសេស (Features)
+              </button>
               
               {/* Mobile Theme Toggle */}
               <button
@@ -203,14 +251,39 @@ export default function Navbar() {
               >
                 {theme === 'dark' ? (
                   <>
-                    <Sun className="w-4 h-4 text-amber-500" /> Light Mode
+                    <Sun className="w-4 h-4 text-amber-500" /> របៀបអានពន្លឺ (Light Mode)
                   </>
                 ) : (
                   <>
-                    <Moon className="w-4 h-4 text-red-600" /> Dark Mode
+                    <Moon className="w-4 h-4 text-red-600" /> របៀបកម្សាន្តងងឹត (Dark Mode)
                   </>
                 )}
               </button>
+
+              {/* Mobile Theme Accents */}
+              <div className="px-3 py-3 border-t border-zinc-800/60 mt-2">
+                <div className="text-zinc-500 text-xs font-semibold mb-3 uppercase tracking-wider">ជម្រើសស្បែកពណ៌ / Accent Color</div>
+                <div className="flex flex-wrap gap-2">
+                  {themeColorsList.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setThemeColor(c.id);
+                        setIsOpen(false);
+                      }}
+                      style={{ borderColor: c.color }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all cursor-pointer ${
+                        themeColor === c.id 
+                          ? 'bg-zinc-800 text-white font-semibold' 
+                          : 'bg-transparent text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: c.color }} />
+                      <span>{c.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               
               {/* Mobile Social Links */}
               <div className="px-3 py-3 border-t border-zinc-800 mt-2">

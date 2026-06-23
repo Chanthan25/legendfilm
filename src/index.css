@@ -4,7 +4,7 @@
 :root {
   /* Dark Mode Default - Rich Golden Temple Imperial theme */
   --bg-app: #0d0907; /* Deep cinematic warm obsidian */
-  --bg-container: rgba(13, 9, 7, 0.76);
+  --bg-container: rgba(13, 9, 7, 0.40);
   --bg-card: rgba(24, 18, 15, 0.92);
   --bg-card-hover: rgba(36, 28, 24, 0.97);
   --border-color: rgba(212, 175, 55, 0.16); /* Warm gold border */
@@ -27,16 +27,110 @@
 :root.light {
   /* Light Mode - Imperial Palace Gold & Crimson aesthetic on fine paper */
   --bg-app: #f7f5ed; /* Imperial Xuan Warm Paper / Fine Porcelain Ivory */
-  --bg-container: rgba(247, 245, 237, 0.88);
-  --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-card-hover: rgba(251, 248, 238, 0.98);
-  --border-color: rgba(158, 16, 30, 0.15); /* Soft crimson gold border */
-  --text-primary: #2d1e18; /* Rich Calligraphy Charcoal Espresso */
-  --text-secondary: #5c4436; /* Warm sand brown */
-  --text-muted: #8c7161; /* Muted clay brown */
+  --bg-container: rgba(247, 245, 237, 0.94);
+  --bg-card: #ffffff;
+  --bg-card-hover: #fcfbfa;
+  --border-color: rgba(158, 16, 30, 0.12); /* Soft crimson gold border */
+  --text-primary: #1c110b; /* Rich Calligraphy Charcoal Espresso */
+  --text-secondary: #4a3427; /* Warm sand brown */
+  --text-muted: #7c6251; /* Muted clay brown */
   --text-inverted: #f7f5ed;
-  --badge-bg: rgba(158, 16, 30, 0.08); /* Dilute Crimson */
-  --card-shadow: 0 10px 30px rgba(158, 16, 30, 0.05);
+  --badge-bg: rgba(158, 16, 30, 0.06); /* Dilute Crimson */
+  --card-shadow: 0 4px 20px rgba(28, 17, 11, 0.03);
+}
+
+/* 7 Dynamic Color Themes */
+[data-theme-color="golden"] {
+  --gold-500: #D4AF37;
+  --gold-400: #E5C25D;
+  --gold-600: #B59026;
+  --crimson-500: #C21E2E;
+  --crimson-600: #9E101E;
+  --crimson-700: #7e0c17;
+}
+
+[data-theme-color="crimson"] {
+  --gold-500: #E63946;
+  --gold-400: #F87171;
+  --gold-600: #991B1B;
+  --crimson-500: #DC2626;
+  --crimson-600: #991B1B;
+  --crimson-700: #7F1D1D;
+  --border-color: rgba(230, 57, 70, 0.22);
+}
+[data-theme="light"][data-theme-color="crimson"] {
+  --border-color: rgba(220, 38, 38, 0.12);
+  --badge-bg: rgba(220, 38, 38, 0.05);
+}
+
+[data-theme-color="jade"] {
+  --gold-500: #10B981;
+  --gold-400: #34D399;
+  --gold-600: #047857;
+  --crimson-500: #059669;
+  --crimson-600: #047857;
+  --crimson-700: #064E3B;
+  --border-color: rgba(16, 185, 129, 0.22);
+}
+[data-theme="light"][data-theme-color="jade"] {
+  --border-color: rgba(16, 185, 129, 0.12);
+  --badge-bg: rgba(16, 185, 129, 0.05);
+}
+
+[data-theme-color="sapphire"] {
+  --gold-500: #3B82F6;
+  --gold-400: #60A5FA;
+  --gold-600: #1D4ED8;
+  --crimson-500: #2563EB;
+  --crimson-600: #1D4ED8;
+  --crimson-700: #1E3A8A;
+  --border-color: rgba(59, 130, 246, 0.22);
+}
+[data-theme="light"][data-theme-color="sapphire"] {
+  --border-color: rgba(59, 130, 246, 0.12);
+  --badge-bg: rgba(59, 130, 246, 0.05);
+}
+
+[data-theme-color="purple"] {
+  --gold-500: #8B5CF6;
+  --gold-400: #A78BFA;
+  --gold-600: #5B21B6;
+  --crimson-500: #7C3AED;
+  --crimson-600: #5B21B6;
+  --crimson-700: #4C1D95;
+  --border-color: rgba(139, 92, 246, 0.22);
+}
+[data-theme="light"][data-theme-color="purple"] {
+  --border-color: rgba(139, 92, 246, 0.12);
+  --badge-bg: rgba(139, 92, 246, 0.05);
+}
+
+[data-theme-color="pink"] {
+  --gold-500: #EC4899;
+  --gold-400: #F472B6;
+  --gold-600: #BE185D;
+  --crimson-500: #DB2777;
+  --crimson-600: #BE185D;
+  --crimson-700: #831843;
+  --border-color: rgba(236, 72, 153, 0.22);
+}
+[data-theme="light"][data-theme-color="pink"] {
+  --border-color: rgba(236, 72, 153, 0.12);
+  --badge-bg: rgba(236, 72, 153, 0.05);
+}
+
+[data-theme-color="sunset"] {
+  --gold-500: #F97316;
+  --gold-400: #FB923C;
+  --gold-600: #C2410C;
+  --crimson-500: #EA580C;
+  --crimson-600: #C2410C;
+  --crimson-700: #7C2D12;
+  --border-color: rgba(249, 115, 22, 0.22);
+}
+[data-theme="light"][data-theme-color="sunset"] {
+  --border-color: rgba(249, 115, 22, 0.12);
+  --badge-bg: rgba(249, 115, 22, 0.05);
 }
 
 @theme {
@@ -66,13 +160,19 @@
 
 body {
   /* Premium warm sunset/historical temple look of Angkor Wat un-watermarked */
-  background-image: url('https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=2000');
+  background-image: url('https://images.unsplash.com/photo-1580974511812-4b7196df5503?auto=format&fit=crop&q=80&w=2000');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-color: var(--bg-app);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, background-image 0.3s ease;
+}
+
+.light body,
+[data-theme="light"] body {
+  background-image: none !important;
+  background-color: var(--bg-app) !important;
 }
 
 /* Base structural adjustments for glass effects and backdrop transitions */
@@ -99,6 +199,72 @@ header, nav, footer, div, section, article {
 
 .bg-crimson-gradient {
   background: linear-gradient(135deg, var(--crimson-500) 0%, var(--crimson-600) 100%);
+}
+
+/* 7-Color Rainbow Neon Glowing Border Animation */
+@keyframes rainbow-border-rotate {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rainbow-glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.7)) 
+            drop-shadow(0 0 12px rgba(255, 0, 0, 0.4));
+  }
+  14% {
+    filter: drop-shadow(0 0 4px rgba(255, 127, 0, 0.7)) 
+            drop-shadow(0 0 12px rgba(255, 127, 0, 0.4));
+  }
+  28% {
+    filter: drop-shadow(0 0 4px rgba(255, 255, 0, 0.7)) 
+            drop-shadow(0 0 12px rgba(255, 255, 0, 0.4));
+  }
+  42% {
+    filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.7)) 
+            drop-shadow(0 0 12px rgba(0, 255, 0, 0.4));
+  }
+  57% {
+    filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.7)) 
+            drop-shadow(0 0 12px rgba(0, 242, 254, 0.4));
+  }
+  71% {
+    filter: drop-shadow(0 0 4px rgba(79, 172, 254, 0.7)) 
+            drop-shadow(0 0 12px rgba(79, 172, 254, 0.4));
+  }
+  85% {
+    filter: drop-shadow(0 0 4px rgba(182, 32, 224, 0.7)) 
+            drop-shadow(0 0 12px rgba(182, 32, 224, 0.4));
+  }
+}
+
+.rainbow-glow-outer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5px;
+  background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00f2fe, #4facfe, #b620e0, #ff0000);
+  background-size: 300% 300%;
+  animation: rainbow-border-rotate 6s ease infinite, rainbow-glow-pulse 6s ease infinite;
+  border-radius: 9999px;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.rainbow-glow-inner {
+  background: #000000;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Improved contrast for texts in cards in light mode */

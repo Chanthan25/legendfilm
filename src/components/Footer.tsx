@@ -4,7 +4,7 @@ import { Film } from 'lucide-react';
 export default function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-zinc-800 pt-12 pb-8 mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Send, RefreshCw } from 'lucide-react';
-import { getAccessToken } from '../lib/firebase';
+import { getAccessToken } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -80,7 +80,7 @@ export default function Inbox() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Mail className="w-8 h-8 text-amber-500" />

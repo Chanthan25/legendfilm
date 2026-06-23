@@ -68,7 +68,7 @@ export default function Review() {
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         <Link to={`/drama/${drama.id}`} className="inline-flex items-center gap-2 text-zinc-400 hover:text-amber-500 transition-colors mb-8 font-medium text-sm uppercase tracking-wider">
           <ArrowLeft className="w-4 h-4" /> Back to Drama
         </Link>

@@ -75,7 +75,7 @@ export default function Categories() {
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Browse by Category</h1>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
@@ -156,7 +156,7 @@ export default function Categories() {
         {/* Results */}
         <motion.div 
           layout
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
         >
           {filteredAndSortedDramas.map((drama, index) => (
             <motion.div

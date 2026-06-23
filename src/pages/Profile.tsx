@@ -208,7 +208,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         
         {/* Profile Header */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 mb-8 relative overflow-hidden">

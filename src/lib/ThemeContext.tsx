@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark';
+export type ThemeColor = 'golden' | 'crimson' | 'jade' | 'sapphire' | 'purple' | 'pink' | 'sunset';
 
 interface ThemeContextType {
   theme: Theme;
+  themeColor: ThemeColor;
   toggleTheme: () => void;
+  setThemeColor: (color: ThemeColor) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -15,12 +18,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return savedTheme || 'dark'; // default to dark mode for rich cinematic aesthetic
   });
 
+  const [themeColor, setThemeColorState] = useState<ThemeColor>(() => {
+    const savedColor = localStorage.getItem('themeColor') as ThemeColor;
+    return savedColor || 'golden'; // default to Imperial Golden
+  });
+
   const toggleTheme = () => {
     setTheme((prevTheme) => {
       const nextTheme = prevTheme === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', nextTheme);
       return nextTheme;
     });
+  };
+
+  const setThemeColor = (color: ThemeColor) => {
+    setThemeColorState(color);
+    localStorage.setItem('themeColor', color);
   };
 
   useEffect(() => {
@@ -32,8 +45,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.setAttribute('data-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.setAttribute('data-theme-color', themeColor);
+  }, [themeColor]);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, themeColor, toggleTheme, setThemeColor }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Calendar, Film, Globe, ThumbsUp, Share2, Plus, Check, MessageSquare, MoreVertical, ThumbsDown, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Star, Calendar, Film, Globe, ThumbsUp, Share2, Plus, Check, MessageSquare, MoreVertical, ThumbsDown, ChevronDown, ChevronUp, Trash2, ArrowLeft } from 'lucide-react';
 import ShareButtons from '../components/ShareButtons';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/AuthContext';
 import { getWatchlist, toggleWatchlist, getReviews, addReview, checkIsFollowing, getFollowStats, toggleFollow, getDramaStats, getUserDramaReaction, toggleDramaReaction, addDramaShare, getProfile, getDramaById, getDramas } from '../lib/api';
+import { parseVideoUrl } from '../lib/videoParser';
 
 export default function DramaDetails() {
   const { id } = useParams<{ id: string }>();
@@ -228,31 +229,94 @@ export default function DramaDetails() {
 
   return (
     <div className="min-h-screen bg-zinc-950/95 pt-6 pb-20">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6">
+      <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-zinc-400 hover:text-amber-500 mb-6 transition-colors group text-sm font-medium cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          ត្រឡប់ក្រោយ (Back)
+        </button>
+
+        <div className="flex flex-col lg:flex-row gap-6">
         
         {/* Main Content (Left Column) */}
         <div className="flex-1 lg:max-w-[70%]">
           
           {/* Video Player */}
-          <div className="w-full aspect-video bg-black rounded-xl overflow-hidden mb-4 shadow-2xl border border-zinc-800/50">
-            {drama.trailerUrl?.includes('youtube.com') || drama.trailerUrl?.includes('vimeo.com') ? (
-              <iframe
-                src={drama.trailerUrl}
-                title={`${drama.title} Official Trailer`}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              ></iframe>
-            ) : (
-              <video
-                src={drama.trailerUrl}
-                title={`${drama.title} Official Trailer`}
-                className="w-full h-full border-0 object-contain"
-                controls
-                controlsList="nodownload"
-              ></video>
-            )}
-          </div>
+          {(() => {
+            const video = parseVideoUrl(drama.trailerUrl);
+            return (
+              <>
+                <div className="w-full aspect-video bg-black rounded-xl overflow-hidden mb-4 shadow-2xl border border-zinc-800/50 relative">
+                  {!drama.trailerUrl ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 bg-zinc-950 p-6 text-center">
+                      <Film className="w-12 h-12 text-zinc-700 mb-2" />
+                      <p className="text-sm">មិនទាន់មានវីដេអូសម្រាប់រឿងនេះនៅឡើយទេ</p>
+                      <p className="text-xs text-zinc-600 mt-1">No video trailer or episode link provided yet.</p>
+                    </div>
+                  ) : video.isPrivateTelegram ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-red-400 bg-zinc-950 p-6 text-center gap-2 font-khmer">
+                      <span className="text-3xl">⚠️</span>
+                      <p className="font-bold text-sm text-red-500">វីដេអូនេះស្ថិតក្នុង Telegram Channel ឯកជន (Private Channel)!</p>
+                      <p className="max-w-md text-xs text-zinc-400 leading-relaxed">
+                        ប្រព័ន្ធមិនអាចចាក់ផ្សាយវីដេអូពីក្នុង Channel ឯកជន ឬគ្រុបបិទជិតជាសាធារណៈបានទេ។ អ្នកបង្កើតរឿងនេះត្រូវផ្លាស់ប្ដូរមកប្រើប្រាស់លីង <span className="text-amber-500 font-semibold underline">Public Channel</span> វិញ។
+                      </p>
+                    </div>
+                  ) : video.type === 'direct' ? (
+                    <video
+                      src={video.embedUrl}
+                      title={`${drama.title} Player`}
+                      className="w-full h-full border-0 object-contain"
+                      controls
+                      controlsList="nodownload"
+                    />
+                  ) : (
+                    <iframe
+                      src={video.embedUrl}
+                      title={`${drama.title} Embedded Player`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  )}
+                </div>
+
+                {drama.trailerUrl && video.type === 'telegram' && !video.isPrivateTelegram && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-zinc-900 border border-amber-500/20 rounded-xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-amber-500 font-bold flex items-center gap-2 text-sm">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                        </span>
+                        ទស្សនាដោយសេរីនៅលើកម្មវិធី Telegram
+                      </p>
+                      <p className="text-xs text-zinc-400 max-w-xl leading-relaxed">
+                        បើសិនជាលោកអ្នកជួបបញ្ហាចាក់វីដេអូមិនដើរនៅក្នុង Browser (ដោយសារមុខងារទប់ស្កាត់ការតាមដានរបស់កម្មវិធីរុករក) លោកអ្នកអាចចុចចាក់លេង ឬបើកចូលមើលផ្ទាល់នៅក្នុងកម្មវិធី Telegram បានយ៉ាងរហ័ស និងច្បាស់ល្អឥតខ្ចោះ!
+                      </p>
+                    </div>
+                    <a
+                      href={drama.trailerUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-md active:scale-95 group shrink-0 cursor-pointer"
+                    >
+                      <svg className="w-4 h-4 fill-current mr-2 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.62 7.63c-.12.55-.45.69-.91.43l-2.48-1.83-1.2 1.15c-.13.13-.24.24-.49.24l.18-2.54 4.63-4.18c.2-.18-.04-.27-.3-.1l-5.73 3.61-2.46-.77c-.53-.17-.54-.53.11-.79l9.62-3.71c.45-.16.84.11.7.96z"/>
+                      </svg>
+                      បើកមើលក្នុង Telegram 🚀
+                    </a>
+                  </motion.div>
+                )}
+              </>
+            );
+          })()}
 
           {/* Title & Actions */}
           <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{drama.title}</h1>
@@ -514,8 +578,8 @@ export default function DramaDetails() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
+  </div>
   );
 }

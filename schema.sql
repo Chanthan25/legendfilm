@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ១. បង្កើតតារាង Profiles (សម្រាប់ផ្ទុកព័ត៌មានអ្នកប្រើប្រាស់)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
@@ -17,7 +17,7 @@ CREATE TABLE public.profiles (
 );
 
 -- ២. បង្កើតតារាង Dramas (កុន/វីដេអូ)
-CREATE TABLE public.dramas (
+CREATE TABLE IF NOT EXISTS public.dramas (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
   genre TEXT[] DEFAULT '{}',
@@ -33,7 +33,7 @@ CREATE TABLE public.dramas (
 );
 
 -- ៣. បង្កើតតារាង Reviews (ការបញ្ចេញមតិយោបល់)
-CREATE TABLE public.reviews (
+CREATE TABLE IF NOT EXISTS public.reviews (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   drama_id UUID REFERENCES public.dramas(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE public.reviews (
 );
 
 -- ៤. បង្កើតតារាង Watchlist (វីដេអូរង់ចាំមើល)
-CREATE TABLE public.watchlist (
+CREATE TABLE IF NOT EXISTS public.watchlist (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   drama_id UUID REFERENCES public.dramas(id) ON DELETE CASCADE NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE public.watchlist (
 );
 
 -- ៥. បង្កើតតារាង Followers (អ្នកតាមដានថ្នាក់ឆានែល)
-CREATE TABLE public.followers (
+CREATE TABLE IF NOT EXISTS public.followers (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE public.followers (
 );
 
 -- ៦. បង្កើតតារាង Drama Reactions (ប្រតិកម្ម Like/Dislike លើវីដេអូ)
-CREATE TABLE public.drama_reactions (
+CREATE TABLE IF NOT EXISTS public.drama_reactions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   drama_id UUID REFERENCES public.dramas(id) ON DELETE CASCADE NOT NULL,
@@ -79,7 +79,8 @@ BEGIN
     new.id,
     COALESCE(new.raw_user_meta_data->>'display_name', SPLIT_PART(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://api.dicebear.com/7.x/avataaars/svg?seed=' || new.id)
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -98,33 +99,93 @@ ALTER TABLE public.followers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.drama_reactions ENABLE ROW LEVEL SECURITY;
 
 -- គោលការណ៍ Profiles
+DROP POLICY IF EXISTS "Allow public read access" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual update" ON public.profiles;
 CREATE POLICY "Allow public read access" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Allow individual update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- គោលការណ៍ Dramas
+DROP POLICY IF EXISTS "Allow public read access" ON public.dramas;
+DROP POLICY IF EXISTS "Allow authenticated insert" ON public.dramas;
+DROP POLICY IF EXISTS "Allow owners update" ON public.dramas;
+DROP POLICY IF EXISTS "Allow owners delete" ON public.dramas;
 CREATE POLICY "Allow public read access" ON public.dramas FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated insert" ON public.dramas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Allow owners update" ON public.dramas FOR UPDATE USING (auth.uid() = channel_id);
 CREATE POLICY "Allow owners delete" ON public.dramas FOR DELETE USING (auth.uid() = channel_id);
 
 -- គោលការណ៍ Reviews
+DROP POLICY IF EXISTS "Allow public read access" ON public.reviews;
+DROP POLICY IF EXISTS "Allow authenticated insert" ON public.reviews;
+DROP POLICY IF EXISTS "Allow owners update" ON public.reviews;
+DROP POLICY IF EXISTS "Allow owners delete" ON public.reviews;
 CREATE POLICY "Allow public read access" ON public.reviews FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated insert" ON public.reviews FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Allow owners update" ON public.reviews FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Allow owners delete" ON public.reviews FOR DELETE USING (auth.uid() = user_id);
 
 -- គោលការណ៍ Watchlist
+DROP POLICY IF EXISTS "Allow owners read access" ON public.watchlist;
+DROP POLICY IF EXISTS "Allow owners insert" ON public.watchlist;
+DROP POLICY IF EXISTS "Allow owners delete" ON public.watchlist;
 CREATE POLICY "Allow owners read access" ON public.watchlist FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Allow owners insert" ON public.watchlist FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Allow owners delete" ON public.watchlist FOR DELETE USING (auth.uid() = user_id);
 
 -- គោលការណ៍ Followers
+DROP POLICY IF EXISTS "Allow public read access" ON public.followers;
+DROP POLICY IF EXISTS "Allow authenticated insert" ON public.followers;
+DROP POLICY IF EXISTS "Allow owners delete" ON public.followers;
 CREATE POLICY "Allow public read access" ON public.followers FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated insert" ON public.followers FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Allow owners delete" ON public.followers FOR DELETE USING (auth.uid() = follower_id);
 
 -- គោលការណ៍ Reactions
+DROP POLICY IF EXISTS "Allow public read access" ON public.drama_reactions;
+DROP POLICY IF EXISTS "Allow authenticated insert" ON public.drama_reactions;
+DROP POLICY IF EXISTS "Allow owners update" ON public.drama_reactions;
+DROP POLICY IF EXISTS "Allow owners delete" ON public.drama_reactions;
 CREATE POLICY "Allow public read access" ON public.drama_reactions FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated insert" ON public.drama_reactions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Allow owners update" ON public.drama_reactions FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Allow owners delete" ON public.drama_reactions FOR DELETE USING (auth.uid() = user_id);
+
+-- ៩. បង្កើត Buckets សម្រាប់ Supabase Storage
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('avatars', 'avatars', true),
+  ('covers', 'covers', true),
+  ('dramas', 'dramas', true),
+  ('media', 'media', true),
+  ('posters', 'posters', true),
+  ('trailers', 'trailers', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- ១០. បង្កើតគោលការណ៍អនុញ្ញាត (Policies) សម្រាប់ Supabase Storage 
+-- អនុញ្ញាតឱ្យមនុស្សគ្រប់គ្នាអាចមើលរូបភាព/វីដេអូបាន (Public Select)
+DROP POLICY IF EXISTS "Public Read Access" ON storage.objects;
+CREATE POLICY "Public Read Access" 
+ON storage.objects FOR SELECT 
+USING (true);
+
+-- អនុញ្ញាតឱ្យអ្នកដែលបាន Login ចូលគណនី (Authenticated) អាចបង្ហោះ file ថ្មីបាន (Insert)
+DROP POLICY IF EXISTS "Authenticated Insert" ON storage.objects;
+CREATE POLICY "Authenticated Insert" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (bucket_id IN ('avatars', 'covers', 'dramas', 'media', 'posters', 'trailers'));
+
+-- អនុញ្ញាតឱ្យអ្នកដែលបាន Login ចូលគណនី (Authenticated) អាចកែប្រែ file បាន (Update)
+DROP POLICY IF EXISTS "Authenticated Update" ON storage.objects;
+CREATE POLICY "Authenticated Update" 
+ON storage.objects FOR UPDATE 
+TO authenticated 
+USING (bucket_id IN ('avatars', 'covers', 'dramas', 'media', 'posters', 'trailers'));
+
+-- អនុញ្ញាតឱ្យអ្នកដែលបាន Login ចូលគណនី (Authenticated) អាចលុប file បាន (Delete)
+DROP POLICY IF EXISTS "Authenticated Delete" ON storage.objects;
+CREATE POLICY "Authenticated Delete" 
+ON storage.objects FOR DELETE 
+TO authenticated 
+USING (bucket_id IN ('avatars', 'covers', 'dramas', 'media', 'posters', 'trailers'));
+

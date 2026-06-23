@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import BackToTop from './components/BackToTop';
+import SidebarFeatures from './components/SidebarFeatures';
 import Home from './pages/Home';
 import DramaDetails from './pages/DramaDetails';
 import Review from './pages/Review';
@@ -46,6 +47,7 @@ export default function App() {
             </main>
             <Footer />
             <BackToTop />
+            <SidebarFeatures />
           </div>
         </Router>
       </ThemeProvider>

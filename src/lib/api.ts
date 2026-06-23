@@ -1,35 +1,105 @@
-import { db, auth, storage } from './firebase';
+import { db } from './firebase';
 import { 
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, 
   query, where, orderBy, serverTimestamp, runTransaction 
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { supabase } from './supabase';
+
+export const auth = {
+  get currentUser() {
+    try {
+      const keys = Object.keys(localStorage);
+      const authKey = keys.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+      if (authKey) {
+        const tokenData = JSON.parse(localStorage.getItem(authKey) || '{}');
+        const user = tokenData?.user;
+        if (user) {
+          return {
+            uid: user.id,
+            id: user.id,
+            email: user.email,
+            displayName: user.user_metadata?.display_name || user.user_metadata?.full_name || '',
+            photoURL: user.user_metadata?.avatar_url || '',
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error getting synchronous user from localStorage:', e);
+    }
+    return null;
+  }
+};
 
 export async function uploadFileWithProgress(
   file: File, 
   path: string, 
   onProgress: (progress: number) => void
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, path);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+  // Extract bucket and folder/file path from full path
+  const parts = path.split('/');
+  const bucketName = parts[0] || 'media';
+  const filePath = parts.slice(1).join('/') || file.name;
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-        onProgress(progress);
-      },
-      (error) => {
-        console.error("Upload error:", error);
-        reject(error);
-      },
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        resolve(downloadURL);
+  console.log(`Uploading to Supabase Storage: bucket="${bucketName}", file="${filePath}"`);
+
+  // Report initial progress
+  onProgress(15);
+
+  // Perform upload
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error(`Supabase upload failed in bucket "${bucketName}":`, error);
+    
+    // Fallback: If bucket Name isn't 'media', try writing inside 'media' bucket, path 'bucketName/filePath'
+    if (bucketName !== 'media') {
+      console.log(`Failed bucket "${bucketName}", trying fallback to "media" bucket...`);
+      onProgress(45);
+      const fallbackPath = `${bucketName}/${filePath}`;
+      const { error: fbError } = await supabase.storage
+        .from('media')
+        .upload(fallbackPath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (fbError) {
+        throw new Error(
+          `Supabase storage upload failed. Please ensure either the bucket "${bucketName}" or a fallback bucket "media" is created and public in your Supabase Dashboard under Storage.\nError details: ${fbError.message}`
+        );
       }
+
+      onProgress(100);
+
+      const { data: urlData } = supabase.storage
+        .from('media')
+        .getPublicUrl(fallbackPath);
+
+      return urlData.publicUrl;
+    }
+
+    throw new Error(
+      `Supabase storage upload failed. Please ensure the bucket "${bucketName}" exists and is set to public in your Supabase Storage.\nError details: ${error.message}`
     );
-  });
+  }
+
+  onProgress(100);
+
+  // Get public download URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(filePath);
+
+  if (!urlData || !urlData.publicUrl) {
+    throw new Error(`Failed to retrieve public URL for uploaded file in bucket "${bucketName}"`);
+  }
+
+  return urlData.publicUrl;
 }
 
 // Helper for error handling
@@ -64,12 +134,37 @@ export async function getProfile(userId: string) {
     const docRef = doc(db, 'profiles', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const profileData = { id: docSnap.id, ...docSnap.data() };
+      try {
+        localStorage.setItem(`profile_cache_${userId}`, JSON.stringify(profileData));
+      } catch (e) {
+        console.warn('Storage limit or error caching profile:', e);
+      }
+      return profileData;
+    }
+    const cached = localStorage.getItem(`profile_cache_${userId}`);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
     }
     return null;
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, `profiles/${userId}`);
-    return null;
+    console.warn('getProfile offline or failed, attempting cache recovery:', error);
+    const cached = localStorage.getItem(`profile_cache_${userId}`);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    // Return a default offline profile model
+    return {
+      id: userId,
+      username: auth.currentUser?.email?.split('@')[0] || 'User',
+      display_name: auth.currentUser?.email?.split('@')[0] || 'អ្នកប្រើប្រាស់ (Offline Mode)',
+      avatar_url: '',
+      is_offline: true
+    };
   }
 }
 
@@ -77,9 +172,25 @@ export async function updateProfile(userId: string, updates: any) {
   try {
     const docRef = doc(db, 'profiles', userId);
     await setDoc(docRef, updates, { merge: true });
+    
+    // Update local cache
+    const cached = localStorage.getItem(`profile_cache_${userId}`);
+    let existing = {};
+    if (cached) {
+      try { existing = JSON.parse(cached); } catch (e) {}
+    }
+    localStorage.setItem(`profile_cache_${userId}`, JSON.stringify({ ...existing, ...updates, id: userId }));
     return null;
   } catch (error) {
-    console.error('Error updating profile:', error);
+    console.error('Error updating profile, writing to offline cache:', error);
+    
+    // Still write to local cache so user sees changes instantly
+    const cached = localStorage.getItem(`profile_cache_${userId}`);
+    let existing = {};
+    if (cached) {
+      try { existing = JSON.parse(cached); } catch (e) {}
+    }
+    localStorage.setItem(`profile_cache_${userId}`, JSON.stringify({ ...existing, ...updates, id: userId }));
     return error;
   }
 }

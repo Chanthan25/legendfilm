@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
@@ -19,10 +18,25 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) throw signInError;
         navigate('/profile');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: email.split('@')[0],
+              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+            }
+          }
+        });
+        if (signUpError) throw signUpError;
+        alert("គណនីត្រូវបានបង្កើតដោយជោគជ័យ! ប្រសិនបើការបញ្ជាក់អ៊ីមែលត្រូវបានបើកនៅក្នុងផ្ទាំងគ្រប់គ្រងព្រះវិហាររបស់អ្នក សូមឆែកមើលអ៊ីមែលដើម្បីដំណើរការគណនីរបស់អ្នក។");
         navigate('/profile');
       }
     } catch (err: any) {
@@ -58,8 +72,14 @@ export default function Auth() {
           onClick={async () => {
             setLoading(true);
             try {
-              await signInWithPopup(auth, googleProvider);
-              navigate('/profile');
+              const { error: oAuthError } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                  redirectTo: window.location.origin + '/profile',
+                  scopes: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
+                }
+              });
+              if (oAuthError) throw oAuthError;
             } catch (err: any) {
               setError(err.message);
             }

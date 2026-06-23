@@ -47,19 +47,19 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-950">
       {/* Hero Section */}
       {featuredDrama ? (
-      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden bg-[#0d0907]">
+      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden bg-transparent">
         <div className="absolute inset-0">
           <img 
             src={featuredDrama.poster} 
             alt="Hero Background" 
-            className="w-full h-full object-cover opacity-25 scale-105"
+            className="w-full h-full object-cover opacity-20 scale-105"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0907] via-[#0d0907]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0d0907] via-[#0d0907]/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-950/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/40 to-transparent" />
         </div>
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
+        <div className="relative z-10 max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 w-full flex items-center justify-between">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -108,20 +108,20 @@ export default function Home() {
       )}
 
       {/* Trending Section */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
         <div className="flex justify-between items-end mb-10">
           <div>
             <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
               <span className="w-2 h-8 bg-amber-500 rounded-full"></span> Trending Dramas
             </h2>
-            <p className="text-zinc-400">Most discussed Chinese & Khmer series this week</p>
+            <p className="text-zinc-400">Most discussed Khmer & Chinese series this week</p>
           </div>
           <Link to="/categories" className="hidden sm:flex items-center gap-1 text-amber-500 hover:text-amber-400 font-semibold transition-colors">
             View All <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
           {trendingDramas.map((drama, index) => (
             <motion.div 
               key={drama.id}
@@ -138,7 +138,7 @@ export default function Home() {
 
       {/* Latest Reviews Section */}
       <section className="py-20 bg-zinc-900/50 border-y border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold text-white mb-2">Latest Reviews</h2>
             <p className="text-zinc-400">In-depth analysis and honest opinions</p>
